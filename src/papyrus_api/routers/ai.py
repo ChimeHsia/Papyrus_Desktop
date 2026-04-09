@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any, AsyncGenerator
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -354,7 +354,7 @@ async def create_completion(payload: CompletionRequest) -> StreamingResponse:
                                 chunk = json.loads(line)
                                 if "message" in chunk and "content" in chunk["message"]:
                                     content = chunk["message"]["content"]
-                                    yield f"data: {json.dumps({'text': content})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'text', 'data': content})}\n\n"
                             except json.JSONDecodeError:
                                 continue
                 else:
@@ -397,13 +397,185 @@ async def create_completion(payload: CompletionRequest) -> StreamingResponse:
                                         delta = chunk["choices"][0].get("delta", {})
                                         content = delta.get("content", "")
                                         if content:
-                                            yield f"data: {json.dumps({'text': content})}\n\n"
+                                            yield f"data: {json.dumps({'type': 'text', 'data': content})}\n\n"
                                 except json.JSONDecodeError:
                                     continue
 
-            yield f"data: {json.dumps({'done': True})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'data': {'message': str(e)}})}\n\n"
+
+    return StreamingResponse(
+        content=generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
+
+class ChatRequest(BaseModel):
+    """聊天请求模型。"""
+    messages: list[dict[str, str]]
+    model: str
+    mode: str = "chat"
+    reasoning: bool = False
+
+
+@router.post("/chat/stream")
+async def chat_stream(request: Request) -> StreamingResponse:
+    """AI聊天流式接口。
+
+    处理聊天消息并返回流式响应。
+    使用新的providers系统获取配置。
+    """
+    from papyrus.data.database import load_all_providers
+    from papyrus.paths import DATABASE_FILE
+
+    # 解析请求数据
+    content_type = request.headers.get("Content-Type", "")
+    messages: list[dict[str, str]] = []
+    model: str = ""
+    mode: str = "chat"
+    reasoning: bool = False
+
+    if "multipart/form-data" in content_type:
+        # 处理 FormData 格式
+        form_data = await request.form()
+        messages = json.loads(form_data.get("messages", "[]"))
+        model = form_data.get("model", "") or ""
+        mode = form_data.get("mode", "chat") or "chat"
+        reasoning_str = form_data.get("reasoning", "false")
+        reasoning = str(reasoning_str).lower() == "true"
+    else:
+        # 处理 JSON 格式
+        try:
+            json_data = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        messages = json_data.get("messages", []) or []
+        model = json_data.get("model", "") or ""
+        mode = json_data.get("mode", "chat") or "chat"
+        reasoning_val = json_data.get("reasoning", False)
+        reasoning = bool(reasoning_val) if reasoning_val is not None else False
+
+    # 验证必要参数
+    if not model:
+        raise HTTPException(status_code=400, detail="Model is required")
+    if not messages:
+        raise HTTPException(status_code=400, detail="Messages are required")
+
+    # 从新的providers系统加载配置
+    providers = load_all_providers(DATABASE_FILE)
+
+    # 找到默认provider
+    default_provider = None
+    for p in providers:
+        if p.get("isDefault") and p.get("enabled"):
+            default_provider = p
+            break
+
+    if not default_provider:
+        raise HTTPException(status_code=400, detail="没有可用的默认AI供应商，请先在设置中配置")
+
+    # 检查API Key
+    api_keys = default_provider.get("apiKeys", [])
+    if not api_keys:
+        raise HTTPException(status_code=400, detail=f"请先配置 {default_provider.get('name', 'AI')} 的 API Key")
+
+    # 获取第一个有效的API Key
+    api_key = None
+    for key in api_keys:
+        if key.get("key"):
+            api_key = key["key"]
+            break
+
+    if not api_key and default_provider.get("type") != "ollama":
+        raise HTTPException(status_code=400, detail=f"请先配置 {default_provider.get('name', 'AI')} 的 API Key")
+
+    # 获取base_url
+    base_url = default_provider.get("baseUrl", "")
+    if not base_url and default_provider.get("type") != "ollama":
+        raise HTTPException(status_code=400, detail=f"请先配置 {default_provider.get('name', 'AI')} 的 Base URL")
+
+    # 根据provider类型选择调用方式
+    provider_type = default_provider.get("type", "openai")
+
+    async def generate() -> AsyncGenerator[str, None]:
+        """生成聊天内容的流式响应。"""
+        try:
+            if requests_available and requests is not None:
+                if provider_type == "ollama":
+                    # Ollama 流式调用
+                    ollama_base_url = base_url or "http://localhost:11434"
+
+                    data = {
+                        "model": model,
+                        "messages": messages,
+                        "stream": True,
+                        "options": {"temperature": 0.7}
+                    }
+
+                    response = requests.post(
+                        f"{ollama_base_url}/api/chat",
+                        json=data,
+                        stream=True,
+                        timeout=60
+                    )
+
+                    for line in response.iter_lines():
+                        if line:
+                            try:
+                                chunk = json.loads(line)
+                                if "message" in chunk and "content" in chunk["message"]:
+                                    content = chunk["message"]["content"]
+                                    yield f"data: {json.dumps({'type': 'text', 'data': content})}\n\n"
+                            except json.JSONDecodeError:
+                                continue
+                else:
+                    # OpenAI 兼容流式调用
+                    openai_base_url = base_url or "https://api.openai.com/v1"
+
+                    headers = {
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    }
+
+                    data = {
+                        "model": model,
+                        "messages": messages,
+                        "temperature": 0.7,
+                        "max_tokens": 2000,
+                        "stream": True
+                    }
+
+                    response = requests.post(
+                        f"{openai_base_url}/chat/completions",
+                        headers=headers,
+                        json=data,
+                        stream=True,
+                        timeout=60
+                    )
+
+                    for line in response.iter_lines():
+                        if line:
+                            line_str = line.decode('utf-8')
+                            if line_str.startswith('data: '):
+                                try:
+                                    chunk = json.loads(line_str[6:])
+                                    if "choices" in chunk and chunk["choices"]:
+                                        delta = chunk["choices"][0].get("delta", {})
+                                        content = delta.get("content", "")
+                                        if content:
+                                            yield f"data: {json.dumps({'type': 'text', 'data': content})}\n\n"
+                                except json.JSONDecodeError:
+                                    continue
+
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'data': {'message': str(e)}})}\n\n"
 
     return StreamingResponse(
         content=generate(),

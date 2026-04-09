@@ -204,6 +204,11 @@ const ChatView = ({ onBack }: ChatViewProps) => {
   const [modelModalVisible, setModelModalVisible] = useState(false);
   const [modelForm] = Form.useForm();
   const [modelFormProviderId, setModelFormProviderId] = useState<string>('');
+  
+  // 模型参数状态
+  const [temperature, setTemperature] = useState(0.7);
+  const [topP, setTopP] = useState(0.9);
+  const [maxTokens, setMaxTokens] = useState(2000);
 
   const selected = providers.find(p => p.id === '1');
   
@@ -236,14 +241,43 @@ const ChatView = ({ onBack }: ChatViewProps) => {
     fetch('/api/config/ai')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.config && data.config.features) {
+        if (data.success && data.config) {
           const agentEnabled = data.config.features.agent_enabled ?? false;
           setAgentModeEnabledState(agentEnabled);
           saveAgentSettings({ agentModeEnabled: agentEnabled });
+          
+          // 加载模型参数
+          if (data.config.parameters) {
+            setTemperature(data.config.parameters.temperature || 0.7);
+            setTopP(data.config.parameters.top_p || 0.9);
+            setMaxTokens(data.config.parameters.max_tokens || 2000);
+          }
         }
       })
       .catch(console.error);
   }, []);
+  
+  // 当模型选择变化时保存
+  const handleModelChange = (modelId: string) => {
+    setCurrentModelId(modelId);
+    // 保存当前模型选择
+    fetch('/api/config/ai')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.config) {
+          const updatedConfig = {
+            ...data.config,
+            current_model: modelId,
+          };
+          return fetch('/api/config/ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedConfig),
+          });
+        }
+      })
+      .catch(console.error);
+  };
 
   useEffect(() => {
     loadProviders();
@@ -256,6 +290,15 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       .then(data => {
         if (data.success && data.providers) {
           setProviders(data.providers);
+          // 加载 AI 配置以获取当前模型
+          fetch('/api/config/ai')
+            .then(res => res.json())
+            .then(aiData => {
+              if (aiData.success && aiData.config) {
+                setCurrentModelId(aiData.config.current_model || 'm1');
+              }
+            })
+            .catch(console.error);
         }
       })
       .catch(console.error)
@@ -908,7 +951,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
             marginBottom: 24,
           }}>
             <SettingItem title="当前模型" desc="选择要使用的 AI 模型" divider={false}>
-              <Select value={currentModelId} onChange={setCurrentModelId} style={{ width: 280 }}>
+              <Select value={currentModelId} onChange={handleModelChange} style={{ width: 280 }}>
                 {providers.filter(p => p.enabled).map(p => (
                   <OptGroup key={p.id} label={p.name}>
                     {p.models.filter(m => m.enabled).map(m => (
@@ -926,26 +969,82 @@ const ChatView = ({ onBack }: ChatViewProps) => {
             padding: '16px 20px',
             marginBottom: 24,
           }}>
-            {[
-              { label: 'Temperature', min: 0, max: 2, step: 0.1, default: 0.7 },
-              { label: 'Top P', min: 0, max: 1, step: 0.1, default: 0.9 },
-              { label: 'Max Tokens', min: 100, max: 8000, step: 100, default: 2000 },
-            ].map((item, index) => (
-              <SettingItem 
-                key={item.label} 
-                title={item.label} 
-                desc="" 
-                divider={index !== 2}
-              >
-                  <div className="settings-slider-control" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 200 }}>
-                    <Slider min={item.min} max={item.max} step={item.step} defaultValue={item.default} style={{ flex: 1 }} />
-                    <InputNumber min={item.min} max={item.max} step={item.step} defaultValue={item.default} style={{ width: 80 }} />
-                  </div>
-              </SettingItem>
-            ))}
+            <SettingItem 
+              title="Temperature" 
+              desc="控制输出的随机性，值越高越随机" 
+              divider
+            >
+                <div className="settings-slider-control" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 200 }}>
+                  <Slider min={0} max={2} step={0.1} value={temperature} onChange={(val) => setTemperature(val as number)} style={{ flex: 1 }} />
+                  <InputNumber min={0} max={2} step={0.1} value={temperature} onChange={(val) => setTemperature(val as number)} style={{ width: 80 }} />
+                </div>
+            </SettingItem>
+            
+            <SettingItem 
+              title="Top P" 
+              desc="控制词汇多样性，值越低越集中" 
+              divider
+            >
+                <div className="settings-slider-control" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 200 }}>
+                  <Slider min={0} max={1} step={0.1} value={topP} onChange={(val) => setTopP(val as number)} style={{ flex: 1 }} />
+                  <InputNumber min={0} max={1} step={0.1} value={topP} onChange={(val) => setTopP(val as number)} style={{ width: 80 }} />
+                </div>
+            </SettingItem>
+            
+            <SettingItem 
+              title="Max Tokens" 
+              desc="控制最大输出长度" 
+              divider={false}
+            >
+                <div className="settings-slider-control" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 200 }}>
+                  <Slider min={100} max={8000} step={100} value={maxTokens} onChange={(val) => setMaxTokens(val as number)} style={{ flex: 1 }} />
+                  <InputNumber min={100} max={8000} step={100} value={maxTokens} onChange={(val) => setMaxTokens(val as number)} style={{ width: 80 }} />
+                </div>
+            </SettingItem>
 
             <SettingItem title="" desc="" divider={false}>
-              <Button type="primary" shape="round">保存参数</Button>
+              <Button 
+                type="primary" 
+                shape="round"
+                onClick={() => {
+                  // 保存模型参数
+                  fetch('/api/config/ai')
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.success && data.config) {
+                        const updatedConfig = {
+                          ...data.config,
+                          parameters: {
+                            temperature,
+                            top_p: topP,
+                            max_tokens: maxTokens,
+                            presence_penalty: data.config.parameters?.presence_penalty || 0.0,
+                            frequency_penalty: data.config.parameters?.frequency_penalty || 0.0,
+                          },
+                        };
+                        return fetch('/api/config/ai', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(updatedConfig),
+                        });
+                      }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.success) {
+                        Message.success('模型参数已保存');
+                      } else {
+                        Message.error('保存失败');
+                      }
+                    })
+                    .catch(err => {
+                      console.error(err);
+                      Message.error('保存模型参数失败');
+                    });
+                }}
+              >
+                保存参数
+              </Button>
             </SettingItem>
           </div>
         </div>
