@@ -130,24 +130,29 @@ def encrypt_api_key(api_key: str) -> str:
         api_key: The API key to encrypt
         
     Returns:
-        Base64 encoded encrypted string, or the original key if encryption fails
+        Base64 encoded encrypted string
+        
+    Raises:
+        RuntimeError: If encryption fails or cryptography library is not available
     """
     if not api_key:
         return api_key
     
     if not CRYPTO_AVAILABLE:
-        # Fallback: base64 encode (not secure, but prevents casual viewing)
-        return f"plain:{api_key}"
+        raise RuntimeError(
+            "cryptography library is required for secure API key storage. "
+            "Please install it with: pip install cryptography"
+        )
     
     cipher = _get_cipher()
     if cipher is None:
-        return f"plain:{api_key}"
+        raise RuntimeError("Failed to initialize encryption cipher")
     
     try:
         encrypted = cipher.encrypt(api_key.encode())
         return f"enc:{base64.urlsafe_b64encode(encrypted).decode()}"
-    except Exception:
-        return f"plain:{api_key}"
+    except Exception as e:
+        raise RuntimeError(f"Failed to encrypt API key: {e}") from e
 
 
 def decrypt_api_key(encrypted_key: str) -> str:

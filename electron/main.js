@@ -557,78 +557,22 @@ const CERT_MESSAGES = {
 };
 
 // Certificate installation for Windows
+// SECURITY: This function is DISABLED to prevent security risks.
+// Installing self-signed root certificates to the system trust store is dangerous
+// as it allows any certificate signed by this CA to be trusted by the system.
+// 
+// If code signing is needed for production:
+// 1. Use a publicly trusted CA (e.g., DigiCert, Sectigo)
+// 2. Or use certificate pinning at the application level
+// 3. Never install self-signed roots to the system store
+//
+// See: https://docs.microsoft.com/en-us/windows-hardware/drivers/install/local-machine-and-current-user-certificate-stores
 async function installRootCertificate() {
-  if (process.platform !== 'win32') return;
-  
-  const paths = getPaths();
-  const certPath = path.join(paths.resourcesPath, 'certs', 'root-ca.cer');
-  
-  // Check if certificate file exists
-  if (!fs.existsSync(certPath)) {
-    log('Root certificate not found in resources, skipping installation');
-    log(`Expected cert path: ${certPath}`);
-    return;
-  }
-  
-  log(`Found certificate at: ${certPath}`);
-  
-  // Check if already installed (by thumbprint)
-  try {
-    const result = execSync('certutil -store Root "9EE5C13E206DC5DDAC254213E9A45798FE92C303"', { encoding: 'utf-8', stdio: 'pipe' });
-    if (result.includes('Papyrus Self-Signed Root CA')) {
-      log('Root certificate already installed');
-      return;
-    }
-  } catch (e) {
-    // Certificate not found, proceed with installation
-    log('Certificate not found in store, will attempt installation');
-  }
-  
-  // Check if running as administrator
-  let isAdmin = false;
-  try {
-    execSync('net session', { stdio: 'pipe' });
-    isAdmin = true;
-  } catch (e) {
-    isAdmin = false;
-  }
-  
-  if (!isAdmin) {
-    log('Running without administrator privileges, skipping certificate installation');
-    // Silently skip - certificate is optional for app functionality
-    return;
-  }
-  
-  // Ask user for permission
-  const response = dialog.showMessageBoxSync({
-    type: 'question',
-    buttons: ['Install', 'Skip'],
-    defaultId: 0,
-    title: CERT_MESSAGES.dialogTitle,
-    message: CERT_MESSAGES.dialogMessage,
-    detail: CERT_MESSAGES.dialogDetail,
-  });
-  
-  if (response !== 0) {
-    log('User skipped certificate installation');
-    return;
-  }
-  
-  // Install certificate
-  try {
-    execSync(`certutil -addstore -f Root "${certPath}"`, { encoding: 'utf-8' });
-    dialog.showMessageBox({
-      type: 'info',
-      title: CERT_MESSAGES.successTitle,
-      message: CERT_MESSAGES.successMessage,
-      detail: CERT_MESSAGES.successDetail,
-    });
-    log('Root certificate installed successfully');
-  } catch (error) {
-    log(`Failed to install root certificate: ${error.message}`, 'error');
-    // Don't show error dialog - certificate is optional
-    log('Certificate installation failed but continuing app startup');
-  }
+  // SECURITY FIX: Completely disabled to prevent SSRF/MITM attacks
+  // The original code allowed installing a self-signed root CA to the system store,
+  // which could be exploited if the private key is compromised.
+  log('Root certificate installation is disabled for security reasons');
+  return;
 }
 
 // App event handlers

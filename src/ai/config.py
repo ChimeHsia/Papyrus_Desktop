@@ -1,6 +1,11 @@
 import json
 import os
+import re
+import socket
+import struct
+import ipaddress
 from typing import TypedDict
+from urllib.parse import urlparse
 
 
 class ProviderConfig(TypedDict, total=False):
@@ -355,7 +360,7 @@ class AIConfig:
             self.config = default
 
     def validate_config(self) -> None:
-        """验证配置是否包含非法字符"""
+        """验证配置是否包含非法字符和 SSRF 风险"""
         errors: list[str] = []
 
         for provider_name, provider_config in self.config["providers"].items():
@@ -364,8 +369,15 @@ class AIConfig:
                 errors.append(f"{provider_name.upper()} 的 API Key 中包含非法字符（如中文或特殊空格）")
 
             base_url: str = provider_config.get("base_url", "")
-            if base_url and not self._is_valid_url(base_url):
-                errors.append(f"{provider_name.upper()} 的 Base URL 中包含非法字符")
+            if base_url:
+                if not self._is_valid_url(base_url):
+                    errors.append(f"{provider_name.upper()} 的 Base URL 中包含非法字符")
+                # SSRF 防护：检查是否为私有地址
+                elif self._is_dangerous_url(base_url):
+                    errors.append(
+                        f"{provider_name.upper()} 的 Base URL '{base_url}' 指向私有或本地地址，"
+                        "存在 SSRF 风险。请使用公共可访问的 API 端点。"
+                    )
 
         if errors:
             raise ValueError("\n".join(errors))
@@ -383,6 +395,85 @@ class AIConfig:
         if not url:
             return True
         return self._is_valid_ascii(url)
+
+    def _is_private_ip(self, ip: str) -> bool:
+        """检查 IP 是否为私有/内网地址"""
+        try:
+            # 解析 IP 地址
+            addr = ipaddress.ip_address(ip)
+            
+            # 检查是否为私有 IP
+            if isinstance(addr, ipaddress.IPv4Address):
+                # IPv4 私有地址
+                return addr.is_private or addr.is_loopback or addr.is_link_local
+            elif isinstance(addr, ipaddress.IPv6Address):
+                # IPv6 私有地址
+                return (
+                    addr.is_private or 
+                    addr.is_loopback or 
+                    addr.is_link_local or
+                    addr.is_site_local
+                )
+        except ValueError:
+            pass
+        return False
+
+    def _is_dangerous_url(self, url: str) -> bool:
+        """检查 URL 是否为危险地址（SSRF 防护）
+        
+        阻止访问：
+        - 私有 IP 地址（10.x.x.x, 172.16-31.x.x, 192.168.x.x）
+        - 本地回环（127.x.x.x, localhost）
+        - 链路本地地址（169.254.x.x）
+        - 元数据服务（169.254.169.254）
+        """
+        if not url:
+            return False
+        
+        try:
+            parsed = urlparse(url)
+            hostname = parsed.hostname
+            
+            if not hostname:
+                return False
+            
+            # Check for localhost variants
+            localhost_names = {'localhost', '127.0.0.1', '::1', '0.0.0.0'}
+            if hostname.lower() in localhost_names:
+                return True
+            
+            # Check for AWS metadata service
+            if hostname == '169.254.169.254':
+                return True
+            
+            # Check if hostname is an IP address
+            ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+            if re.match(ip_pattern, hostname):
+                return self._is_private_ip(hostname)
+            
+            # Check for IPv6
+            if ':' in hostname and not hostname.startswith('http'):
+                return self._is_private_ip(hostname)
+                
+        except Exception:
+            pass
+        
+        return False
+
+    def validate_base_url(self, url: str) -> None:
+        """验证 base_url 是否安全（SSRF 防护）
+        
+        Raises:
+            ValueError: 如果 URL 指向私有/内网地址
+        """
+        if not url:
+            return
+        
+        if self._is_dangerous_url(url):
+            raise ValueError(
+                f"Base URL '{url}' 指向私有或本地地址，存在 SSRF 风险。"
+                "请使用公共可访问的 API 端点。"
+            )
 
     def save_config(self) -> None:
         self.validate_config()

@@ -591,10 +591,43 @@ class AISidebar:
                 if agent_mode and self.card_tools:
                     tool_call: ToolCall | None = self.card_tools.parse_tool_call(response)
                     if tool_call:
-                        tool_result: dict[str, Any] = self.card_tools.execute_tool(tool_call["tool"], tool_call["params"])
-                        def show_tool_result(r: dict[str, Any] = tool_result) -> None:
-                            self.add_message("system", f"执行: {json.dumps(r, ensure_ascii=False, indent=2)}")
-                        self.parent.after(0, show_tool_result)
+                        # SECURITY FIX: Destructive tools require user confirmation
+                        # Only auto-execute read-only tools (search, get_stats)
+                        # All write operations (create, update, delete) require approval
+                        tool_name = tool_call["tool"]
+                        destructive_tools = {"create_card", "update_card", "delete_card"}
+                        
+                        if tool_name in destructive_tools:
+                            # Show confirmation dialog before executing destructive tools
+                            def ask_confirmation() -> None:
+                                confirmed = messagebox.askyesno(
+                                    "确认执行",
+                                    f"AI 请求执行以下操作:\n\n"
+                                    f"工具: {tool_name}\n"
+                                    f"参数: {json.dumps(tool_call['params'], ensure_ascii=False, indent=2)}\n\n"
+                                    f"是否允许执行?",
+                                    icon='warning'
+                                )
+                                if confirmed:
+                                    try:
+                                        tool_result: dict[str, Any] = self.card_tools.execute_tool(
+                                            tool_call["tool"], tool_call["params"]
+                                        )
+                                        self.add_message("system", f"执行: {json.dumps(tool_result, ensure_ascii=False, indent=2)}")
+                                    except Exception as e:
+                                        self.add_message("system", f"执行失败: {str(e)}")
+                                else:
+                                    self.add_message("system", f"用户拒绝了工具调用: {tool_name}")
+                            
+                            self.parent.after(0, ask_confirmation)
+                        else:
+                            # Read-only tools can be auto-executed
+                            tool_result: dict[str, Any] = self.card_tools.execute_tool(
+                                tool_call["tool"], tool_call["params"]
+                            )
+                            def show_tool_result(r: dict[str, Any] = tool_result) -> None:
+                                self.add_message("system", f"执行: {json.dumps(r, ensure_ascii=False, indent=2)}")
+                            self.parent.after(0, show_tool_result)
             except Exception as e:
                 error_elapsed: float = round(time.time() - start, 4)
                 self._log_event("ai.chat_error", {

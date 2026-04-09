@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Protocol, TypedDict, cast
@@ -41,6 +42,7 @@ class _ReusableHTTPServer(HTTPServer):
     mcp_logger: LoggerProtocol | None
     mcp_card_tools: CardToolsProtocol | None
     mcp_vault_tools: VaultToolsProtocol | None
+    mcp_auth_token: str | None = None
 
 
 class _MCPHandler(BaseHTTPRequestHandler):
@@ -59,7 +61,11 @@ class _MCPHandler(BaseHTTPRequestHandler):
     def _send_json(self, data: ToolResult, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        # Only allow requests from localhost origins, not "*"
+        origin = self.headers.get("Origin", "")
+        if origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:"):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.end_headers()
         self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
 
@@ -87,12 +93,31 @@ class _MCPHandler(BaseHTTPRequestHandler):
             "params": {str(key): value for key, value in params.items()},
         }
 
+    def _check_auth(self) -> bool:
+        """验证请求是否包含正确的 Authorization header"""
+        auth_header = self.headers.get("Authorization", "")
+        expected_token = self._typed_server.mcp_auth_token
+        
+        # If no token is configured, skip auth (for backward compatibility during transition)
+        if expected_token is None:
+            return True
+        
+        # Check Bearer token
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            return secrets.compare_digest(token, expected_token)
+        return False
+
     def do_OPTIONS(self) -> None:
         """处理 CORS 预检"""
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        # Only allow requests from localhost origins
+        origin = self.headers.get("Origin", "")
+        if origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:"):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
 
     def do_GET(self) -> None:
@@ -125,6 +150,11 @@ class _MCPHandler(BaseHTTPRequestHandler):
             self._send_json({"error": "未知路径"}, 404)
 
     def do_POST(self) -> None:
+        # Check authentication for all POST requests
+        if not self._check_auth():
+            self._send_json({"error": "Unauthorized"}, 401)
+            return
+        
         if self.path != "/call":
             self._send_json({"error": "未知路径"}, 404)
             return
@@ -190,12 +220,14 @@ class MCPServer:
         logger: LoggerProtocol | None = None,
         card_tools: CardToolsProtocol | None = None,
         vault_tools: VaultToolsProtocol | None = None,
+        auth_token: str | None = None,
     ) -> None:
         self.host = host
         self.port = port
         self.logger = logger
         self.card_tools = card_tools
         self.vault_tools = vault_tools
+        self.auth_token = auth_token or secrets.token_urlsafe(32)
         self._httpd: _ReusableHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -208,6 +240,7 @@ class MCPServer:
         self._httpd.mcp_logger = self.logger
         self._httpd.mcp_card_tools = self.card_tools
         self._httpd.mcp_vault_tools = self.vault_tools
+        self._httpd.mcp_auth_token = self.auth_token
 
         self._thread = threading.Thread(target=self._httpd.serve_forever, daemon=True)
         self._thread.start()

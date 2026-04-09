@@ -92,9 +92,13 @@ class ModelUpdateRequest(BaseModel):
 
 @router.get("/providers", response_model=ProviderListResponse)
 def get_providers() -> ProviderListResponse:
-    """Get all providers with their API keys and models."""
+    """Get all providers with their API keys and models.
+    
+    SECURITY: API keys are masked (e.g., 'sk-12***abcd') and cannot be retrieved via API.
+    """
     try:
-        providers_data = load_all_providers(DATABASE_FILE)
+        # SECURITY: include_keys=False ensures API keys are masked in the response
+        providers_data = load_all_providers(DATABASE_FILE, include_keys=False)
         
         providers = []
         for p in providers_data:
@@ -370,11 +374,5 @@ def delete_api_key_endpoint(provider_id: str, key_id: str) -> dict[str, Any]:
 # Utility Endpoints
 # ============================================================================
 
-@router.post("/providers/test-decrypt")
-def test_decrypt(encrypted_key: dict[str, str]) -> dict[str, str]:
-    """Test decrypt an API key (for debugging)."""
-    try:
-        decrypted = decrypt_api_key(encrypted_key.get("key", ""))
-        return {"success": True, "decrypted": decrypted}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+# Note: test-decrypt endpoint removed for security reasons.
+# API keys should never be decryptable through external endpoints.

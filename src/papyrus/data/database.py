@@ -739,8 +739,24 @@ def migrate_from_json(
 
 # ==================== Provider & API Key Operations ====================
 
-def load_all_providers(db_path: str, logger: LoggerProtocol | None = None) -> list[dict]:
-    """Load all providers with their API keys and models."""
+def _mask_api_key(key: str) -> str:
+    """Mask API key for display - only show last 4 characters."""
+    if not key:
+        return ""
+    if len(key) <= 8:
+        return "***"
+    return key[:4] + "***" + key[-4:]
+
+
+def load_all_providers(db_path: str, logger: LoggerProtocol | None = None, include_keys: bool = False) -> list[dict]:
+    """Load all providers with their API keys and models.
+    
+    Args:
+        db_path: Database path
+        logger: Optional logger
+        include_keys: If True, returns decrypted keys (for internal use only).
+                     If False, returns masked keys (for API responses).
+    """
     init_database(db_path, logger)
     
     with get_connection(db_path) as conn:
@@ -764,10 +780,13 @@ def load_all_providers(db_path: str, logger: LoggerProtocol | None = None) -> li
             from papyrus.data.crypto import decrypt_api_key
             api_keys = []
             for key_row in api_key_rows:
+                decrypted_key = decrypt_api_key(key_row["encrypted_key"])
+                # SECURITY: Mask keys by default for API responses
+                display_key = decrypted_key if include_keys else _mask_api_key(decrypted_key)
                 api_keys.append({
                     "id": key_row["id"],
                     "name": key_row["name"],
-                    "key": decrypt_api_key(key_row["encrypted_key"]),
+                    "key": display_key,
                 })
             
             # Get models for this provider

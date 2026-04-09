@@ -32,8 +32,9 @@ interface NoteDetailViewProps {
 }
 
 // 初始化 markdown-it 实例
+// Security: html is disabled to prevent XSS attacks
 const md = new MarkdownIt({
-  html: true,
+  html: false,  // Disabled for security - prevents XSS
   linkify: true,
   typographer: true,
 });
