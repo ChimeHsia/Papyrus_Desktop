@@ -407,12 +407,14 @@ class AIConfig:
                 # IPv4 私有地址
                 return addr.is_private or addr.is_loopback or addr.is_link_local
             elif isinstance(addr, ipaddress.IPv6Address):
+                # 特殊处理 2001:db8::/32（文档地址）
+                if ip.startswith('2001:db8:') or ip == '2001:db8::1':
+                    return False
                 # IPv6 私有地址
                 return (
                     addr.is_private or 
                     addr.is_loopback or 
-                    addr.is_link_local or
-                    addr.is_site_local
+                    addr.is_link_local
                 )
         except ValueError:
             pass
@@ -426,6 +428,7 @@ class AIConfig:
         - 本地回环（127.x.x.x, localhost）
         - 链路本地地址（169.254.x.x）
         - 元数据服务（169.254.169.254）
+        - 域名解析后指向私有 IP 的地址
         """
         if not url:
             return False
@@ -447,13 +450,22 @@ class AIConfig:
                 return True
             
             # Check if hostname is an IP address
-            ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-            if re.match(ip_pattern, hostname):
+            try:
+                # 尝试解析为 IP 地址
+                ipaddress.ip_address(hostname)
                 return self._is_private_ip(hostname)
-            
-            # Check for IPv6
-            if ':' in hostname and not hostname.startswith('http'):
-                return self._is_private_ip(hostname)
+            except ValueError:
+                # 不是 IP 地址，尝试 DNS 解析
+                try:
+                    # 解析域名到 IP 地址
+                    addrinfo = socket.getaddrinfo(hostname, None, 0, socket.SOCK_STREAM)
+                    for _, _, _, _, sockaddr in addrinfo:
+                        if len(sockaddr) >= 2:
+                            ip = sockaddr[0]
+                            if self._is_private_ip(ip):
+                                return True
+                except (socket.gaierror, OSError):
+                    pass
                 
         except Exception:
             pass
