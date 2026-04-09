@@ -125,6 +125,7 @@ lerna-debug.log*
 # 用户数据
 data/
 backup/
+bak/
 *.bak
 *.tmp
 *.temp

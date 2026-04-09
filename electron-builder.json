@@ -11,18 +11,106 @@
     "frontend/dist/**/*",
     "!frontend/node_modules/**/*",
     "!**/*.map",
-    "!**/.*"
+    "!**/.*",
+    "!**/*.md",
+    "!**/*.test.js",
+    "!**/*.test.ts",
+    "!**/*.test.tsx",
+    "!**/__tests__/**/*",
+    "!**/docs/**/*",
+    "!**/examples/**/*",
+    "!**/demo/**/*"
   ],
   "extraResources": [
     {
       "from": "dist-python",
       "to": "python",
-      "filter": ["**/*"]
+      "filter": [
+        "**/*",
+        "!**/__pycache__/**/*",
+        "!**/*.pyc",
+        "!**/*.pyo",
+        "!**/*.pyd",
+        "!**/*.so",
+        "!**/*.dylib",
+        "!**/*.dll",
+        "!**/*.lib",
+        "!**/*.a",
+        "!**/*.h",
+        "!**/*.c",
+        "!**/*.cpp",
+        "!**/*.hpp",
+        "!**/test/**/*",
+        "!**/tests/**/*",
+        "!**/testing/**/*",
+        "!**/doc/**/*",
+        "!**/docs/**/*",
+        "!**/example/**/*",
+        "!**/examples/**/*",
+        "!**/demo/**/*",
+        "!**/demos/**/*",
+        "!**/benchmark/**/*",
+        "!**/benchmarks/**/*",
+        "!**/tutorials/**/*",
+        "!**/notebooks/**/*",
+        "!**/*.ipynb",
+        "!**/*.md",
+        "!**/*.rst",
+        "!**/*.txt",
+        "!**/LICENSE*",
+        "!**/COPYING*",
+        "!**/AUTHORS*",
+        "!**/CHANGELOG*",
+        "!**/CHANGES*",
+        "!**/NEWS*",
+        "!**/TODO*",
+        "!**/CONTRIBUTING*",
+        "!**/CODE_OF_CONDUCT*",
+        "!**/SECURITY*",
+        "!**/MANIFEST*",
+        "!**/setup.py",
+        "!**/setup.cfg",
+        "!**/pyproject.toml",
+        "!**/requirements*.txt",
+        "!**/Pipfile*",
+        "!**/poetry.lock",
+        "!**/package-lock.json",
+        "!**/yarn.lock",
+        "!**/pnpm-lock.yaml",
+        "!**/.gitignore",
+        "!**/.gitattributes",
+        "!**/.editorconfig",
+        "!**/.eslint*",
+        "!**/.prettier*",
+        "!**/.babel*",
+        "!**/webpack*.js",
+        "!**/rollup*.js",
+        "!**/vite*.js",
+        "!**/tsconfig*.json",
+        "!**/jsconfig*.json",
+        "!**/*.map",
+        "!**/*.ts",
+        "!**/*.tsx",
+        "!**/*.jsx",
+        "!**/types/**/*",
+        "!**/typings/**/*",
+        "!**/@types/**/*",
+        "!**/node_modules/**/*"
+      ]
     },
     {
       "from": "assets",
       "to": "assets",
-      "filter": ["**/*"]
+      "filter": [
+        "**/*",
+        "!**/*.psd",
+        "!**/*.ai",
+        "!**/*.sketch",
+        "!**/*.fig",
+        "!**/*.xd",
+        "!**/source/**/*",
+        "!**/raw/**/*"
+      ]
     },
     {
       "from": "build/root-ca.cer",
@@ -37,6 +125,7 @@
     "**/*.so",
     "**/*.dylib"
   ],
+  "compression": "maximum",
   "electronVersion": "41.1.0",
   "electronDownload": {
     "mirror": "https://npmmirror.com/mirrors/electron/"
@@ -65,7 +154,12 @@
     "shortcutName": "Papyrus",
     "include": "build/installer.nsh",
     "deleteAppDataOnUninstall": false,
-    "artifactName": "${productName}-Setup-${version}.${ext}"
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "compression": "lzma",
+    "solid": true
+  },
+  "portable": {
+    "artifactName": "${productName}-Portable-${version}.${ext}"
   },
   "mac": {
     "target": [
