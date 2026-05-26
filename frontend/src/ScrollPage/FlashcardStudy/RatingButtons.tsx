@@ -6,6 +6,7 @@ interface RatingButtonsProps {
 }
 
 export function RatingButtons({ onRate }: RatingButtonsProps) {
+  // 评分按钮组：1-忘记 / 2-模糊 / 3-掌握
   return (
     <div
       style={{
@@ -61,6 +62,7 @@ export function RatingButtons({ onRate }: RatingButtonsProps) {
   );
 }
 
+// 揭晓答案提示
 export function RevealHint() {
   return (
     <div

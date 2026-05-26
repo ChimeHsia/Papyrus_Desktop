@@ -26,6 +26,8 @@ const StatusBar = () => {
 
   return (
     <div className="statusbar">
+      {/* 状态栏：笔记统计信息 */}
+      {/* 笔记字符/词/标题统计 */}
       {hasStats && (
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '16px' }}>
           <span>{stats.chars} 字符</span>

@@ -78,6 +78,7 @@ export default function FlashcardStudy({ onExit, demo = false, filterTag }: Flas
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [revealAnswer, submitRating, onExit, lastResult, studyState, undoRating]);
 
+  // 加载状态：显示加载动画
   if (studyState === 'loading') {
     return (
       <div
@@ -96,6 +97,7 @@ export default function FlashcardStudy({ onExit, demo = false, filterTag }: Flas
     );
   }
 
+  // 空状态：无待复习卡片
   if (studyState === 'empty') {
     return (
       <EmptyOrComplete
@@ -108,6 +110,7 @@ export default function FlashcardStudy({ onExit, demo = false, filterTag }: Flas
     );
   }
 
+  // 正常学习界面：工具栏 + 卡片 + 评分按钮
   return (
     <div
       ref={containerRef}

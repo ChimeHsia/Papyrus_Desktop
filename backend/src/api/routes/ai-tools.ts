@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../utils/helpers.js';
 import type { FastifyInstance } from 'fastify';
 import { PapyrusTools, AIResponseParser } from '../../ai/tools.js';
 import { getToolManager } from '../../ai/tool-manager.js';
@@ -80,11 +81,11 @@ export default async function aiToolsRoutes(fastify: FastifyInstance): Promise<v
         result,
       });
     } catch (e) {
-      manager.failCall(callId, e instanceof Error ? e.message : String(e));
+      manager.failCall(callId, toErrorMessage(e));
       reply.send({
         success: false,
         call: convertCallToResponse(call),
-        message: e instanceof Error ? e.message : String(e),
+        message: toErrorMessage(e),
       });
     }
   });
@@ -162,12 +163,12 @@ export default async function aiToolsRoutes(fastify: FastifyInstance): Promise<v
           message: '工具调用已自动执行',
         });
       } catch (e) {
-        manager.failCall(callId, e instanceof Error ? e.message : String(e));
+        manager.failCall(callId, toErrorMessage(e));
         const call = manager.getCall(callId);
         reply.send({
           success: false,
           call: call ? convertCallToResponse(call) : null,
-          message: e instanceof Error ? e.message : String(e),
+          message: toErrorMessage(e),
         });
       }
     } else {

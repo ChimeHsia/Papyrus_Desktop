@@ -37,47 +37,43 @@ export async function getAuthToken(): Promise<string | null> {
   }
 }
 
+export async function rawRequest(path: string, init?: RequestInit): Promise<Response> {
+  const token = await getAuthToken();
+  const hasBody = init?.body !== undefined;
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { 'X-Papyrus-Token': token } : {}),
+      ...(init?.headers as Record<string, string> || {}),
+    },
+  });
+  if (res.status === 401) {
+    clearAuthTokenCache();
+    const retryToken = await getAuthToken();
+    if (retryToken) {
+      const retryRes = await fetch(`${BASE}${path}`, {
+        ...init,
+        headers: {
+          ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+          'X-Papyrus-Token': retryToken,
+          ...(init?.headers as Record<string, string> || {}),
+        },
+      });
+      if (retryRes.ok) return retryRes;
+      if (retryRes.status === 401) clearAuthTokenCache();
+    }
+  }
+  return res;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
-    const token = await getAuthToken();
-    const hasBody = init?.body !== undefined;
-    const res = await fetch(`${BASE}${path}`, {
-      ...init,
-      headers: {
-        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { 'X-Papyrus-Token': token } : {}),
-        ...(init?.headers as Record<string, string> || {}),
-      },
-    });
+    const res = await rawRequest(path, init);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       const baseMessage = body.detail ?? body.error ?? res.statusText;
       const message = body.errorId ? `${baseMessage} [errorId: ${body.errorId}]` : baseMessage;
-      if (res.status === 401 && !cachedToken) {
-        console.warn('[API] Received 401, retrying token fetch...');
-        cachedToken = undefined;
-        const retryToken = await getAuthToken();
-        if (retryToken) {
-          const retryHasBody = init?.body !== undefined;
-          const retryRes = await fetch(`${BASE}${path}`, {
-            ...init,
-            headers: {
-              ...(retryHasBody ? { 'Content-Type': 'application/json' } : {}),
-              'X-Papyrus-Token': retryToken,
-              ...(init?.headers as Record<string, string> || {}),
-            },
-          });
-          if (retryRes.ok) {
-            return retryRes.json();
-          }
-          const retryBody = await retryRes.json().catch(() => ({}));
-          const retryBaseMsg = retryBody.detail ?? retryBody.error ?? retryRes.statusText;
-          const retryMsg = retryBody.errorId ? `${retryBaseMsg} [errorId: ${retryBody.errorId}]` : retryBaseMsg;
-          console.error(`[API] Retry also failed with ${retryRes.status}: ${retryMsg}`);
-          throw new Error(retryMsg);
-        }
-        console.error('[API] Token retry failed: no token available');
-      }
       throw new Error(message);
     }
     return res.json();
@@ -89,7 +85,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
-// ========== Card Types ==========
+// ========== 卡片类型 ==========
 export type Card = {
   id: string;
   q: string;
@@ -114,7 +110,7 @@ export type StreakRes = {
   progress_percent: number;
 };
 
-// ========== Note Types ==========
+// ========== 笔记类型 ==========
 export type Note = {
   id: string;
   title: string;
@@ -138,7 +134,7 @@ export type ImportObsidianRes = {
   errors: number;
 };
 
-// ========== Search Types ==========
+// ========== 搜索类型 ==========
 export type SearchResult = {
   id: string;
   type: 'note' | 'card';
@@ -159,7 +155,7 @@ export type SearchRes = {
   cards_count: number;
 };
 
-// ========== AI Config Types ==========
+// ========== AI 配置类型 ==========
 export type ProviderConfig = {
   api_key?: string;
   base_url?: string;
@@ -195,7 +191,7 @@ export type AIConfigRes = {
   config: AIConfig;
 };
 
-// ========== Completion Types ==========
+// ========== 补全类型 ==========
 export type CompletionConfig = {
   enabled: boolean;
   require_confirm: boolean;
@@ -203,7 +199,7 @@ export type CompletionConfig = {
   max_tokens: number;
 };
 
-// ========== Logs Config Types ==========
+// ========== 日志配置类型 ==========
 export type LogsConfig = {
   log_dir: string;
   log_level: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
@@ -211,7 +207,7 @@ export type LogsConfig = {
   max_log_files: number;
 };
 
-// ========== Update Types ==========
+// ========== 更新类型 ==========
 export type VersionInfo = {
   current_version: string;
   latest_version: string;
@@ -233,7 +229,7 @@ export type VersionRes = {
   repository: string;
 };
 
-// ========== File Types ==========
+// ========== 文件类型 ==========
 export type FileItemData = {
   id: string;
   name: string;
@@ -250,7 +246,7 @@ export type FileItemData = {
 
 export type ListFilesRes = { success: boolean; files: FileItemData[]; count: number };
 
-// ========== Chat Session Types ==========
+// ========== 聊天会话类型 ==========
 export type ChatBlockType = 'text' | 'reasoning' | 'tool_call' | 'tool_result';
 
 export type ChatBlock = {
@@ -349,7 +345,7 @@ export type DeleteChatMessageRes = {
   success: boolean;
 };
 
-// ========== Provider Types ==========
+// ========== 供应商类型 ==========
 export type ProviderItem = {
   id: string;
   type: string;
@@ -366,11 +362,11 @@ export type CreateProviderRes = { success: boolean; provider: ProviderItem; mess
 export type UpdateProviderRes = { success: boolean; message: string; error?: string };
 export type AddModelRes = { success: boolean; modelId: string; message: string; error?: string };
 
-// ========== Card API ==========
+// ========== 卡片 API ==========
 export const api = {
   health: () => request<{ status: string }>('/health'),
   
-  // Cards
+  // 卡片
   listCards: () => request<ListCardsRes>('/cards'),
   createCard: (q: string, a: string, tags?: string[]) => request<{ success: boolean; card: Card }>('/cards', { 
     method: 'POST', 
@@ -397,7 +393,7 @@ export const api = {
     body: JSON.stringify({ content })
   }),
 
-  // Notes
+  // 笔记
   listNotes: () => request<ListNotesRes>('/notes'),
   createNote: (title: string, folder: string, content: string, tags?: string[]) => 
     request<CreateNoteRes>('/notes', { 
@@ -416,18 +412,18 @@ export const api = {
     body: JSON.stringify({ ids }),
   }),
 
-  // Obsidian Import
+  // Obsidian 导入
   importObsidian: (vaultPath: string, excludeFolders?: string[]) => 
     request<ImportObsidianRes>('/notes/import/obsidian', { 
       method: 'POST', 
       body: JSON.stringify({ vault_path: vaultPath, exclude_folders: excludeFolders || ['.obsidian', '.git'] }) 
     }),
 
-  // Search
+  // 搜索
   search: (query: string) => 
     request<SearchRes>(`/search?query=${encodeURIComponent(query)}`),
 
-  // AI Config
+  // AI 配置
   getAIConfig: () =>
     request<AIConfigRes>('/config/ai'),
   saveAIConfig: (config: Partial<AIConfig>) =>
@@ -438,7 +434,7 @@ export const api = {
   testAIConnection: () => 
     request<{ success: boolean; message: string }>('/config/ai/test', { method: 'POST' }),
 
-  // Data Management
+  // 数据管理
   createBackup: () => 
     request<{ success: boolean; path: string }>('/backup', { method: 'POST' }),
   exportData: () => 
@@ -451,7 +447,7 @@ export const api = {
   resetData: () => 
     request<{ success: boolean }>('/data/reset', { method: 'POST' }),
 
-  // Completion
+  // 补全
   getCompletionConfig: () =>
     request<{ success: boolean; config: CompletionConfig }>('/completion/config'),
   saveCompletionConfig: (config: CompletionConfig) =>
@@ -460,7 +456,7 @@ export const api = {
       body: JSON.stringify(config)
     }),
 
-  // Logs Config
+  // 日志配置
   getLogsConfig: () =>
     request<{ success: boolean; config: LogsConfig }>('/config/logs'),
   saveLogsConfig: (config: LogsConfig) =>
@@ -471,7 +467,7 @@ export const api = {
   openLogsDir: () =>
     request<{ success: boolean; path: string }>('/config/logs/open-dir', { method: 'POST' }),
 
-  // Files
+  // 文件
   listFiles: () => request<ListFilesRes>('/files'),
   createFolder: (name: string, parentId?: string) =>
     request<{ success: boolean; file: FileItemData }>('/files/folder', {
@@ -486,7 +482,7 @@ export const api = {
   deleteFile: (id: string) =>
     request<{ success: boolean; deleted: number }>(`/files/${id}`, { method: 'DELETE' }),
 
-  // Chat Sessions
+  // 聊天会话
   listChatSessions: () =>
     request<ListChatSessionsRes>('/sessions'),
   createChatSession: (title?: string) =>
@@ -510,7 +506,7 @@ export const api = {
   deleteChatMessage: (messageId: string) =>
     request<DeleteChatMessageRes>(`/messages/${messageId}`, { method: 'DELETE' }),
 
-  // Providers
+  // 服务提供商
   listProviders: () => request<ListProvidersRes>('/providers'),
   createProvider: (data: ProviderItem) =>
     request<CreateProviderRes>('/providers', {
@@ -561,7 +557,7 @@ export const api = {
       method: 'DELETE',
     }),
 
-  // Tools
+  // 工具
   getToolsCatalog: () =>
     request<{ success: boolean; tools: Array<{ name: string; category: string; side_effect: 'read' | 'write'; description: string }> }>('/tools/catalog'),
   getToolsConfig: () =>
@@ -593,7 +589,7 @@ export const api = {
       body: JSON.stringify(config),
     }),
 
-  // Update
+  // 更新
   getVersion: () => request<VersionRes>('/update/version'),
   checkUpdate: () => request<UpdateCheckRes>('/update/check'),
 };

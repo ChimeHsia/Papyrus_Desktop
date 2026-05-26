@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Version Bump Script
+ * 版本升级脚本
  *
- * 一键完成: bump 根 package.json → sync 子包 → 重生 lock → git commit → tag → push
+ * 一键完成：bump 根 package.json → sync 子包 → 重生 lock → git commit → tag → push
  *
- * Usage:
+ * 用法：
  *   node scripts/bump-version.js <type> [--dry-run] [--no-push]
  *
- * Types:
+ * 类型：
  *   patch       2.0.0       -> 2.0.1
  *   minor       2.0.0       -> 2.1.0
  *   major       2.0.0       -> 3.0.0

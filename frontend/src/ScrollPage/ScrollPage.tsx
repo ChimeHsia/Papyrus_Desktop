@@ -1,11 +1,9 @@
 import { Typography, Button, Message } from '@arco-design/web-react';
 import { IconPlus, IconEye, IconEdit } from '@arco-design/web-react/icon';
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import FlashcardStudy from './FlashcardStudy';
 
-import { api, type Card as CardType } from '../api';
-import { usePageScenery } from '../hooks/useScenery';
+import { useScrollPage } from './hooks/useScrollPage';
 import { PageLayout } from '../components';
 import {
   CollectionCard,
@@ -17,151 +15,29 @@ import {
   BatchCardModal,
   CreateCardModal,
 } from './components';
-import { generateCollections, generateScrolls } from './utils';
 import { PRIMARY_COLOR } from './constants';
 import type { ScrollPageProps } from './types';
 
-const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
+const ScrollPage = (props: ScrollPageProps) => {
   const { t } = useTranslation();
-  const [isStudying, setIsStudying] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
-  const [isDemo, setIsDemo] = useState(false);
-  const [dueCount, setDueCount] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-  const [masteredCount, setMasteredCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [cards, setCards] = useState<CardType[]>([]);
-  const [filterTag, setFilterTag] = useState<string | undefined>(undefined);
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [newCollectionName, setNewCollectionName] = useState('');
-  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
-  const [manageModalVisible, setManageModalVisible] = useState(false);
-  const [manageCollectionId, setManageCollectionId] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [batchCardModalVisible, setBatchCardModalVisible] = useState(false);
-  const [batchSelectedIds, setBatchSelectedIds] = useState<Set<string>>(new Set());
-  const [createCardModalVisible, setCreateCardModalVisible] = useState(false);
-  const [newCardQuestion, setNewCardQuestion] = useState('');
-  const [newCardAnswer, setNewCardAnswer] = useState('');
-  const [newCardTags, setNewCardTags] = useState('');
-  const [isSubmittingCard, setIsSubmittingCard] = useState(false);
-
-  const { config: sceneryConfig } = usePageScenery('scroll');
-
-  const overallProgress = totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0;
-
-  const refreshCards = () => {
-    api.listCards()
-      .then(res => {
-        if (res.success) {
-          setCards(res.cards);
-          const mastered = res.cards.filter(c => (c.interval || 0) > 1).length;
-          setMasteredCount(mastered);
-        }
-      })
-      .catch(console.error);
-  };
-
-  const refreshStats = async () => {
-    try {
-      const nextDueRes = await api.nextDue();
-      if (nextDueRes.success) {
-        setDueCount(nextDueRes.due_count);
-        setTotalCount(nextDueRes.total_count);
-      }
-    } catch (err) {
-      console.error('获取统计失败:', err);
-    }
-  };
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const [nextDueRes, cardsRes] = await Promise.all([
-          api.nextDue(),
-          api.listCards(),
-        ]);
-
-        if (nextDueRes.success) {
-          setDueCount(nextDueRes.due_count);
-          setTotalCount(nextDueRes.total_count);
-        }
-
-        if (cardsRes.success) {
-          setCards(cardsRes.cards);
-          const mastered = cardsRes.cards.filter(c => (c.interval || 0) > 1).length;
-          setMasteredCount(mastered);
-        }
-      } catch (err) {
-        console.error('获取统计失败:', err);
-        Message.error(t('scrollPage.fetchStatsFailed'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!isStudying) {
-      fetchStats();
-    }
-  }, [isStudying, t]);
-
-  useEffect(() => {
-    const handleCardsChanged = () => {
-      if (!isStudying) {
-        refreshCards();
-      }
-    };
-    window.addEventListener('papyrus_cards_changed', handleCardsChanged);
-    return () => window.removeEventListener('papyrus_cards_changed', handleCardsChanged);
-  }, [isStudying]);
-
-  useEffect(() => {
-    const handleGlobalNewCard = () => {
-      setCreateCardModalVisible(true);
-    };
-    const handleStartStudy = (e: Event) => {
-      const customEvent = e as CustomEvent<{ tag?: string }>;
-      const tag = customEvent.detail?.tag;
-      setFilterTag(tag);
-      setIsDemo(false);
-      setIsStudying(true);
-    };
-    window.addEventListener('papyrus_new_card', handleGlobalNewCard);
-    window.addEventListener('papyrus_start_study', handleStartStudy);
-    return () => {
-      window.removeEventListener('papyrus_new_card', handleGlobalNewCard);
-      window.removeEventListener('papyrus_start_study', handleStartStudy);
-    };
-  }, []);
-
-  const startStudy = (tag?: string) => {
-    setIsExiting(false);
-    setFilterTag(tag);
-    setIsDemo(false);
-    setIsStudying(true);
-  };
-
-  const handleExitStudy = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      setIsStudying(false);
-      setIsExiting(false);
-    }, 300);
-  };
-
-  useEffect(() => {
-    if (initialTag && !isStudying) {
-      startStudy(initialTag);
-      onInitialTagUsed?.();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTag]);
-
-  const startDemo = () => {
-    setIsDemo(true);
-    setIsStudying(true);
-  };
+  const {
+    isStudying, isExiting, isDemo,
+    dueCount, totalCount, masteredCount, loading, cards,
+    filterTag, createModalVisible, newCollectionName,
+    selectedCardIds, manageModalVisible, manageCollectionId,
+    isSubmitting, batchCardModalVisible, batchSelectedIds,
+    createCardModalVisible, newCardQuestion, newCardAnswer,
+    newCardTags, isSubmittingCard,
+    setCreateModalVisible, setNewCollectionName,
+    setSelectedCardIds, setManageModalVisible, setManageCollectionId,
+    setBatchCardModalVisible, setBatchSelectedIds,
+    setCreateCardModalVisible, setNewCardQuestion, setNewCardAnswer,
+    setNewCardTags,
+    overallProgress, startStudy, handleExitStudy, startDemo,
+    handleCreateCollection, handleCreateCard,
+    refreshCards, refreshStats,
+    collections, scrolls, sceneryConfig,
+  } = useScrollPage(props);
 
   const shelfContainerStyle = {
     display: 'flex',
@@ -170,65 +46,6 @@ const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
     overflowX: 'auto' as const,
     overflowY: 'hidden' as const,
     paddingBottom: '8px',
-  };
-
-  const collections = generateCollections(cards);
-  const scrolls = generateScrolls(cards);
-
-  const handleCreateCollection = async () => {
-    const name = newCollectionName.trim();
-    setIsSubmitting(true);
-    try {
-      let successCount = 0;
-      for (const cardId of selectedCardIds) {
-        const card = cards.find(c => c.id === cardId);
-        if (card) {
-          const newTags = [...(card.tags || []), name];
-          const res = await api.updateCard(cardId, { tags: newTags });
-          if (res.success) successCount++;
-        }
-      }
-      Message.success(t('scrollPage.collectionCreated', { count: successCount }));
-      setCreateModalVisible(false);
-      setNewCollectionName('');
-      setSelectedCardIds([]);
-      refreshCards();
-    } catch (err) {
-      Message.error(t('scrollPage.createCollectionFailed'));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCreateCard = async () => {
-    const q = newCardQuestion.trim();
-    const a = newCardAnswer.trim();
-    if (!q) {
-      Message.error(t('scrollPage.pleaseEnterQuestion'));
-      return;
-    }
-    if (!a) {
-      Message.error(t('scrollPage.pleaseEnterAnswer'));
-      return;
-    }
-    setIsSubmittingCard(true);
-    try {
-      const tags = newCardTags.split(',').map(tag => tag.trim()).filter(Boolean);
-      const res = await api.createCard(q, a, tags.length > 0 ? tags : undefined);
-      if (res.success) {
-        Message.success(t('scrollPage.cardCreated'));
-        setCreateCardModalVisible(false);
-        setNewCardQuestion('');
-        setNewCardAnswer('');
-        setNewCardTags('');
-        refreshCards();
-        refreshStats();
-      }
-    } catch (err) {
-      Message.error(err instanceof Error ? err.message : t('scrollPage.createCardFailed'));
-    } finally {
-      setIsSubmittingCard(false);
-    }
   };
 
   if (isStudying) {

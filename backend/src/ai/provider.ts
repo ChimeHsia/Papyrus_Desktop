@@ -1,3 +1,6 @@
+const AGENT_SYSTEM_PROMPT = '你是一个智能学习助手。你可以使用工具来完成用户的请求。\n\n工具使用规则：\n1. 只读工具（如搜索卡片、搜索笔记、获取统计、读取文件）可以在分析用户需求后主动使用。\n2. 写操作工具（如创建卡片、更新卡片、删除卡片、创建笔记、修改笔记）只能在用户**明确要求**修改数据时才调用。\n3. 如果用户只是打招呼、闲聊或没有明确请求，不要调用任何工具，直接自然回复即可。\n请根据用户的需求，自主决定使用哪些合适的工具。';
+
+import { toErrorMessage } from '../utils/helpers.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,7 +10,7 @@ import type { Fetch } from 'openai/core';
 import type { AIConfig } from './config.js';
 import { isPrivateUrl } from './config.js';
 import { LLMCache } from './llm-cache.js';
-import { getProviderConfigFromDB } from './db-sync.js';
+import { getProviderConfigFromDB } from '../db/database.js';
 import { getClientId } from '../utils/client-id.js';
 import { fetchWithProxy } from '../utils/proxy.js';
 import { CardTools } from './tools.js';
@@ -29,106 +32,20 @@ import {
 } from '../db/database.js';
 import type { ChatSessionRow, ChatMessageRow } from '../db/database.js';
 import type { ChatBlock, ChatSession, ChatMessage, ChatAttachment, ChatTokenUsage } from '../core/types.js';
+import {
+  StreamEventType, StreamChunk, ReasoningEffort, ReasoningKind, ProviderModality,
+  AttachmentMeta, OpenAIFetchParam, REASONING_BUDGET, RequestParamsWithReasoning,
+  getProviderModality, modelSupportsReasoning, normalizeReasoning,
+} from './provider-types.js';
 
-type OpenAIFetchParam = NonNullable<
-  NonNullable<ConstructorParameters<typeof OpenAI>[0]>['fetch']
->;
-
-export type StreamEventType =
-  | 'content'
-  | 'reasoning'
-  | 'tool_start'
-  | 'tool_result'
-  | 'done'
-  | 'error'
-  | 'user_saved'
-  | 'stream_end';
-
-export interface StreamChunk {
-  type: StreamEventType;
-  data: string | Record<string, unknown>;
-}
-
-export type ReasoningEffort = 'low' | 'medium' | 'high';
-export type ReasoningKind = false | 'reasoning_effort' | 'thinking' | 'thinking_config';
-export type ProviderModality = 'openai-compat' | 'ollama' | 'text-only';
+export type {
+  StreamEventType, StreamChunk, ReasoningEffort, ReasoningKind, ProviderModality, AttachmentMeta,
+};
 
 interface ProviderMessage {
   role: string;
   content: string | Array<Record<string, unknown>>;
   images?: string[];
-}
-
-type RequestParamsWithReasoning = OpenAI.Chat.ChatCompletionCreateParamsStreaming & {
-  thinking?: { type: 'enabled'; budget_tokens: number };
-  thinking_config?: { thinking_budget: number };
-};
-
-const REASONING_BUDGET: Record<ReasoningEffort, number> = {
-  low: 1024,
-  medium: 4096,
-  high: 8192,
-};
-
-export function getProviderModality(providerName: string): ProviderModality {
-  if (providerName === 'ollama') return 'ollama';
-  const compat = new Set([
-    'openai',
-    'anthropic',
-    'gemini',
-    'deepseek',
-    'moonshot',
-    'liyuan-deepseek',
-    'siliconflow',
-    'custom',
-  ]);
-  if (compat.has(providerName)) return 'openai-compat';
-  return 'text-only';
-}
-
-export function modelSupportsReasoning(providerName: string, model: string): ReasoningKind {
-  const lower = model.toLowerCase();
-  if (
-    providerName === 'openai' ||
-    providerName === 'deepseek' ||
-    providerName === 'moonshot' ||
-    providerName === 'liyuan-deepseek' ||
-    providerName === 'siliconflow'
-  ) {
-    if (/^o[1-9]|^gpt-5|r1|reasoner|thinking/i.test(lower)) return 'reasoning_effort';
-    return false;
-  }
-  if (providerName === 'anthropic') {
-    if (/claude-(opus|sonnet)-[4-9]|claude-mythos/i.test(lower)) return 'thinking';
-    return false;
-  }
-  if (providerName === 'gemini') {
-    if (/gemini-[2-9]\.\d|gemini-[3-9]/i.test(lower)) return 'thinking_config';
-    return false;
-  }
-  return false;
-}
-
-function normalizeReasoning(reasoning: unknown): ReasoningEffort | false {
-  if (typeof reasoning === 'boolean') return reasoning ? 'medium' : false;
-  if (typeof reasoning === 'string') {
-    const s = reasoning.trim().toLowerCase();
-    if (s === 'low' || s === 'medium' || s === 'high') return s;
-    if (s === 'true') return 'medium';
-    return false;
-  }
-  return false;
-}
-
-export interface AttachmentMeta {
-  id: string;
-  name: string;
-  stored_name: string;
-  path: string;
-  type: 'image' | 'document';
-  mime_type: string;
-  size: number;
-  created_at: number;
 }
 
 interface BackendHistoryMessage {
@@ -160,7 +77,7 @@ function safeParseJsonArray<T>(text: string): T[] {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) return parsed as T[];
   } catch {
-    // ignore
+    // 忽略
   }
   return [];
 }
@@ -172,7 +89,7 @@ function safeParseJsonObject<T>(text: string): T | null {
       return parsed as T;
     }
   } catch {
-    // ignore
+    // 忽略
   }
   return null;
 }
@@ -244,7 +161,7 @@ export class AIManager {
       try {
         fs.renameSync(this.legacySessionsFile, this.legacySessionsFile + '.bak');
       } catch {
-        // ignore
+        // 忽略
       }
       return;
     }
@@ -297,11 +214,11 @@ export class AIManager {
       fs.renameSync(this.legacySessionsFile, this.legacySessionsFile + '.bak');
       console.info(`[AIManager] 已从 sessions.json 迁移 ${imported} 个会话到数据库`);
     } catch (e) {
-      console.error('[AIManager] sessions.json 迁移失败，原文件保留:', e instanceof Error ? e.message : String(e));
+      console.error('[AIManager] sessions.json 迁移失败，原文件保留:', toErrorMessage(e));
     }
   }
 
-  // ==================== Sessions ====================
+  // ==================== 会话 ====================
 
   listSessions(): ChatSession[] {
     return repoListChatSessions().map(rowToChatSession);
@@ -419,7 +336,7 @@ export class AIManager {
     void fresh;
   }
 
-  // ==================== Persistence helpers ====================
+  // ==================== 持久化辅助 ====================
 
   async persistUserMessage(
     sessionId: string,
@@ -463,7 +380,7 @@ export class AIManager {
     });
   }
 
-  // ==================== Attachment helpers ====================
+  // ==================== 附件辅助 ====================
 
   private validateAttachments(attachments: Array<{ path?: string } | string> | null | undefined): string[] {
     if (!attachments) return [];
@@ -475,7 +392,7 @@ export class AIManager {
       const itemPath = typeof item === 'string' ? item : (item.path ?? '');
       if (!itemPath) continue;
 
-      // Reject path traversal attempts
+      // 拒绝路径遍历尝试
       if (itemPath.includes('..') || itemPath.includes('\x00')) {
         throw new Error(`非法文件路径: ${itemPath}`);
       }
@@ -484,7 +401,7 @@ export class AIManager {
       if (!fs.existsSync(itemPath)) {
         const vaultDir = path.join(this.dataDir, 'vault');
         if (fs.existsSync(vaultDir)) {
-          // Use basename matching to avoid partial path issues
+          // 使用 basename 匹配避免部分路径问题
           const files = fs.readdirSync(vaultDir);
           const safeItem = path.basename(itemPath);
           const matched = files.find((f) => f.startsWith(safeItem + '_'));
@@ -499,7 +416,7 @@ export class AIManager {
       }
       const resolved = path.resolve(resolvedPath);
       const dataDir = path.resolve(this.dataDir);
-      // Always enforce path containment for attachments
+      // 始终对附件执行路径包含检查
       if (!resolved.startsWith(dataDir + path.sep) && resolved !== dataDir) {
         throw new Error('附件必须位于 Papyrus 工作区内');
       }
@@ -543,7 +460,7 @@ export class AIManager {
         type: attachmentType,
         mime_type: mimeType,
         size: fs.statSync(dst).size,
-        created_at: Date.now() / 1000,
+        createdAt: Date.now() / 1000,
       });
     }
     return stored;
@@ -712,7 +629,7 @@ export class AIManager {
     return { role, content };
   }
 
-  // ==================== Stream ====================
+  // ==================== 流处理 ====================
 
   async *chatStream(
     userMessage: string,
@@ -748,9 +665,7 @@ export class AIManager {
 
     const messages: ProviderMessage[] = [];
     const effectiveSystemPrompt = systemPrompt || (
-      mode === 'agent'
-        ? '你是一个智能学习助手。你可以使用工具来完成用户的请求。\n\n工具使用规则：\n1. 只读工具（如搜索卡片、搜索笔记、获取统计、读取文件）可以在分析用户需求后主动使用。\n2. 写操作工具（如创建卡片、更新卡片、删除卡片、创建笔记、修改笔记）只能在用户**明确要求**修改数据时才调用。\n3. 如果用户只是打招呼、闲聊或没有明确请求，不要调用任何工具，直接自然回复即可。\n请根据用户的需求，自主决定使用哪些合适的工具。'
-        : undefined
+      mode === 'agent' ? AGENT_SYSTEM_PROMPT : undefined
     );
     if (effectiveSystemPrompt) {
       messages.push({ role: 'system', content: effectiveSystemPrompt });
@@ -768,7 +683,7 @@ export class AIManager {
     try {
       attachmentsMeta = this.storeAttachments(attachments, targetSessionId);
     } catch (e) {
-      yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+      yield { type: 'error', data: toErrorMessage(e) };
       return;
     }
     messages.push(this.buildUserMessageForProvider(providerName, userMessage, attachmentsMeta));
@@ -781,7 +696,7 @@ export class AIManager {
     try {
       userMessageId = await this.persistUserMessage(targetSessionId, userMessage, attachmentsMeta);
     } catch (e) {
-      yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+      yield { type: 'error', data: toErrorMessage(e) };
       return;
     }
     yield {
@@ -812,7 +727,7 @@ export class AIManager {
           },
         };
       } catch (e) {
-        yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+        yield { type: 'error', data: toErrorMessage(e) };
       }
       return;
     }
@@ -839,7 +754,7 @@ export class AIManager {
         },
       };
     } catch (e) {
-      yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+      yield { type: 'error', data: toErrorMessage(e) };
     }
   }
 
@@ -867,11 +782,8 @@ export class AIManager {
     }
 
     const messages: ProviderMessage[] = [];
-    const systemPrompt = mode === 'agent'
-      ? '你是一个智能学习助手。你可以使用工具来完成用户的请求。\n\n工具使用规则：\n1. 只读工具（如搜索卡片、搜索笔记、获取统计、读取文件）可以在分析用户需求后主动使用。\n2. 写操作工具（如创建卡片、更新卡片、删除卡片、创建笔记、修改笔记）只能在用户**明确要求**修改数据时才调用。\n3. 如果用户只是打招呼、闲聊或没有明确请求，不要调用任何工具，直接自然回复即可。\n请根据用户的需求，自主决定使用哪些合适的工具。'
-      : undefined;
+    const systemPrompt = mode === 'agent' ? AGENT_SYSTEM_PROMPT : undefined;
     if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-
     const contextLength = this.config.config.features.context_length;
     const allHistory = repoListChatMessages(userRow.session_id);
     const history = contextLength > 0 ? allHistory.slice(-(contextLength * 2)) : allHistory;
@@ -913,7 +825,7 @@ export class AIManager {
         },
       };
     } catch (e) {
-      yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+      yield { type: 'error', data: toErrorMessage(e) };
     }
   }
 
@@ -934,7 +846,7 @@ export class AIManager {
       throw new Error('SSRF: 禁止通过非本地 provider 访问私有地址');
     }
 
-    // Enforce HTTPS for non-local providers to protect API keys in transit
+    // 对非本地 provider 强制使用 HTTPS，保护传输中的 API 密钥
     const isLocalProvider = ['ollama', 'lm-studio', 'localai', 'tabbyapi', 'koboldcpp', 'text-generation-webui', 'llamacpp'].includes(providerName);
     if (!isLocalProvider && rawBaseUrl.startsWith('http:')) {
       throw new Error('非本地 Provider 必须使用 HTTPS 以保护 API Key 传输安全');
@@ -1132,7 +1044,7 @@ export class AIManager {
             }
           }
         } catch {
-          // ignore parse errors
+          // 忽略解析错误
         }
       }
     }
@@ -1155,7 +1067,7 @@ export class AIManager {
     return out;
   }
 
-  // ==================== Convenience APIs ====================
+  // ==================== 便捷 API ====================
 
   getHint(question: string): Promise<string> {
     const prompt = `用户正在学习这个问题：\n${question}\n\n请给出一个不直接透露答案的提示，帮助用户思考。`;

@@ -1,16 +1,16 @@
 /**
- * Electron Main Process for Papyrus
- * 
- * Handles:
- * - Window creation and management
- * - Python backend process spawning
- * - System tray integration
- * - Platform-specific adaptations
+ * Electron 主进程
+ *
+ * 负责：
+ * - 窗口创建与管理
+ * - 后端进程启动
+ * - 系统托盘集成
+ * - 平台特定适配
  */
 
 const { app, BrowserWindow, Tray, Menu, ipcMain, shell, dialog } = require('electron');
 
-// Preserve user data directory compatibility across productName changes
+// 跨 productName 变更保留用户数据目录兼容性
 app.setName('papyrus');
 const path = require('path');
 const fs = require('fs');
@@ -19,15 +19,15 @@ const os = require('os');
 const crypto = require('crypto');
 const { createDiagnosticWindow } = require('./diagnostic-window');
 
-// Generate a per-session auth token for backend API protection
+// 为后端 API 保护生成每个会话的认证令牌
 const PAPYRUS_AUTH_TOKEN = crypto.randomBytes(32).toString('base64url');
 
-// In-memory log storage for diagnostics
+// 用于诊断的内存日志存储
 const startupLogs = [];
 const originalLog = console.log;
 const originalError = console.error;
 
-// Configuration
+// 配置
 const CONFIG = {
   frontendDevUrl: 'http://localhost:5173',
   backendPort: 8000,
@@ -36,14 +36,14 @@ const CONFIG = {
   backendStartupTimeout: 60000,
 };
 
-// Global state
+// 全局状态
 let mainWindow = null;
 let tray = null;
 let backendProcess = null;
 let isQuitting = false;
 let isDevMode = !app.isPackaged;
 
-// Paths
+// 路径
 const getPaths = () => {
   const resourcesPath = isDevMode 
     ? path.join(__dirname, '..') 
@@ -57,7 +57,7 @@ const getPaths = () => {
   };
 };
 
-// Get platform-specific icon name
+// 获取平台特定的图标名称
 function getIconName() {
   switch (process.platform) {
     case 'win32': return 'icon.ico';
@@ -66,7 +66,7 @@ function getIconName() {
   }
 }
 
-// Get Node backend executable info
+// 获取后端可执行文件信息
 function getBackendExecutableInfo() {
   if (isDevMode) {
     return {
@@ -76,26 +76,26 @@ function getBackendExecutableInfo() {
     };
   }
 
-  // In production, backend is placed in resources/backend via extraResources
+  // 生产环境中，后端通过 extraResources 放置在 resources/backend 中
   return {
-    // In production, process.execPath is the Electron executable itself.
-    // We set ELECTRON_RUN_AS_NODE=1 so it runs in Node.js mode.
+    // 生产环境中，process.execPath 是 Electron 可执行文件本身。
+    // 设置 ELECTRON_RUN_AS_NODE=1 使其以 Node.js 模式运行。
     command: process.execPath,
     args: [path.join(process.resourcesPath, 'backend', 'dist', 'api', 'server.js')],
     cwd: path.join(process.resourcesPath, 'backend'),
   };
 }
 
-// Logging utility
+// 日志工具
 function log(message, level = 'info') {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
   console.log(logMessage);
   
-  // Store in memory for diagnostics
+  // 存储在内存中供诊断使用
   startupLogs.push({ timestamp, message, level });
   
-  // Also log to file in production
+  // 生产环境也写入日志文件
   if (!isDevMode) {
     try {
       const logDir = path.join(app.getPath('userData'), 'logs');
@@ -105,13 +105,13 @@ function log(message, level = 'info') {
       const logFile = path.join(logDir, `main-${new Date().toISOString().split('T')[0]}.log`);
       fs.appendFileSync(logFile, logMessage + '\n');
     } catch (e) {
-      // If file logging fails, at least we have console
+      // 如果文件日志写入失败，至少控制台还有输出
       console.error('Failed to write to log file:', e);
     }
   }
 }
 
-// Check if backend is ready
+// 检查后端是否就绪
 async function checkBackendHealth() {
   return new Promise((resolve) => {
     const http = require('http');
@@ -137,7 +137,7 @@ async function checkBackendHealth() {
   });
 }
 
-// Wait for backend to be ready
+// 等待后端就绪
 async function waitForBackend(timeout = CONFIG.backendStartupTimeout) {
   const startTime = Date.now();
   
@@ -153,7 +153,7 @@ async function waitForBackend(timeout = CONFIG.backendStartupTimeout) {
   throw new Error('Backend failed to start within timeout');
 }
 
-// Start Node.js backend
+// 启动 Node.js 后端
 async function startBackend() {
   const paths = getPaths();
 
@@ -174,9 +174,8 @@ async function startBackend() {
     PAPYRUS_AUTH_TOKEN: PAPYRUS_AUTH_TOKEN,
   };
 
-  // In production, the Electron executable acts as the Node.js runtime
-  // for the backend process. ELECTRON_RUN_AS_NODE tells Electron to
-  // run in headless Node.js mode instead of launching a GUI.
+  // 生产环境中，Electron 可执行文件充当后端的 Node.js 运行时。
+  // ELECTRON_RUN_AS_NODE 告诉 Electron 以无头 Node.js 模式运行，而非启动 GUI。
   if (!isDevMode) {
     env.ELECTRON_RUN_AS_NODE = '1';
   }
@@ -188,7 +187,7 @@ async function startBackend() {
     env,
   });
 
-  // Handle backend output
+  // 处理后端输出
   backendProcess.stdout?.on('data', (data) => {
     log(`[Backend] ${data.toString().trim()}`);
   });
@@ -214,7 +213,7 @@ async function startBackend() {
     }
   });
 
-  // Wait for backend to be ready
+  // 等待后端就绪
   try {
     await waitForBackend();
     log('Backend started successfully');
@@ -228,7 +227,7 @@ async function startBackend() {
   }
 }
 
-// Stop Node backend
+// 停止 Node 后端
 function stopBackend() {
   if (!backendProcess) return;
 
@@ -236,7 +235,7 @@ function stopBackend() {
   log(`Stopping backend process (PID: ${pid})...`);
 
   if (process.platform === 'win32') {
-    // Use spawn with array arguments to avoid shell injection
+    // 使用数组参数的 spawn 避免 shell 注入
     const { spawnSync } = require('child_process');
     try {
       spawnSync('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'pipe' });
@@ -248,17 +247,17 @@ function stopBackend() {
         // process already dead
       }
     }
-    // Verify the process is actually gone
+    // 确认进程确实已结束
     const checkResult = spawnSync('tasklist', ['/FI', `PID eq ${pid}`], { stdio: 'pipe' });
     const checkOutput = checkResult.stdout?.toString() || '';
     if (checkOutput.includes(String(pid))) {
-      // Process is still alive — force kill
+      // 进程仍在运行——强制终止
       log(`Process ${pid} still alive after first kill, retrying...`, 'error');
       spawnSync('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'pipe' });
     }
   } else {
     backendProcess.kill('SIGTERM');
-    // Give it 3 seconds, then SIGKILL
+    // 等待 3 秒，然后 SIGKILL
     setTimeout(() => {
       try {
         backendProcess?.kill('SIGKILL');
@@ -272,7 +271,7 @@ function stopBackend() {
   log('Backend process stopped');
 }
 
-// Create main window
+// 创建主窗口
 function createWindow() {
   const paths = getPaths();
   
@@ -281,7 +280,7 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    show: false, // Don't show until ready
+    show: false, // 准备就绪前不显示
     icon: paths.iconPath,
     title: 'Papyrus Desktop',
     webPreferences: {
@@ -291,16 +290,16 @@ function createWindow() {
       webSecurity: true,
       devTools: isDevMode,
     },
-    // Frameless window - hide native title bar
-    // macOS: use hiddenInset to preserve traffic lights (red/yellow/green buttons)
-    // Windows/Linux: use hidden to hide entire title bar
+    // 无框窗口——隐藏原生标题栏
+    // macOS: 使用 hiddenInset 保留红/黄/绿窗口按钮
+    // Windows/Linux: 使用 hidden 隐藏整个标题栏
     frame: false,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     titleBarOverlay: false,
   });
 
-  // Set Content Security Policy to mitigate XSS risks
-  // unsafe-inline is needed for React/CSS-in-JS; connect-src allows AI API calls
+  // 设置内容安全策略以降低 XSS 风险
+  // unsafe-inline 用于 React/CSS-in-JS；connect-src 允许 AI API 调用
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -312,7 +311,7 @@ function createWindow() {
     });
   });
 
-  // Load content
+  // 加载内容
   if (isDevMode) {
     log(`Loading development URL: ${CONFIG.frontendDevUrl}`);
     mainWindow.loadURL(CONFIG.frontendDevUrl);
@@ -323,14 +322,14 @@ function createWindow() {
     mainWindow.loadFile(indexPath);
   }
 
-  // Set application menu based on platform
-  // macOS: full application menu with File, Edit, View, Window, Help (system menu bar)
-  // Windows/Linux: minimal Edit menu for keyboard shortcuts only
-  // Note: File/Edit are in custom titlebar for Windows/Linux, but we need Edit menu for shortcuts
+  // 根据平台设置应用菜单
+  // macOS: 完整的应用菜单（系统菜单栏包含 File、Edit、View、Window、Help）
+  // Windows/Linux: 仅保留键盘快捷键所需的编辑菜单
+  // 注意：Windows/Linux 的文件/编辑在自定义标题栏中，但需要编辑菜单支持快捷键
   const isMac = process.platform === 'darwin';
   
   if (isMac) {
-    // macOS: use native menu bar with Papyrus app menu
+    // macOS: 使用原生菜单栏
     const template = [
       {
         label: 'Papyrus',
@@ -376,7 +375,7 @@ function createWindow() {
     ];
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   } else {
-    // Windows/Linux: minimal Edit menu for keyboard shortcuts
+    // Windows/Linux: 仅保留键盘快捷键的编辑菜单
     Menu.setApplicationMenu(Menu.buildFromTemplate([
       {
         label: 'Edit',
@@ -393,7 +392,7 @@ function createWindow() {
     ]));
   }
   
-  // Window event handlers
+  // 窗口事件处理
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     
@@ -417,16 +416,16 @@ function createWindow() {
         tray = null;
       }
     }
-    // If tray is not available, let the window close normally so user isn't locked out
+    // 如果托盘不可用，让窗口正常关闭，以免用户被困
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 
-  // Handle external links
+  // 处理外部链接
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // SECURITY: validate URL before opening
+    // 安全：打开前验证 URL
     const allowedProtocols = ['http:', 'https:', 'mailto:'];
     let parsed;
     try {
@@ -441,7 +440,7 @@ function createWindow() {
   });
 }
 
-// Create system tray
+// 创建系统托盘
 function createTray() {
   const paths = getPaths();
   
@@ -501,29 +500,29 @@ function createTray() {
   }
 }
 
-// IPC handlers
+// IPC 处理程序
 function setupIPC() {
-  // Get app version
+  // 获取应用版本
   ipcMain.handle('app:getVersion', () => app.getVersion());
   
-  // Get platform info
+  // 获取平台信息
   ipcMain.handle('app:getPlatform', () => process.platform);
   
-  // Check if development mode
+  // 检查是否为开发模式
   ipcMain.handle('app:isDev', () => isDevMode);
 
-  // Get backend auth token (for API requests from renderer)
+  // 获取后端认证令牌（供渲染进程的 API 请求使用）
   ipcMain.handle('app:getAuthToken', () => PAPYRUS_AUTH_TOKEN);
 
-  // Quit the application (sets isQuitting so window.close() actually quits)
+  // 退出应用（设置 isQuitting 使 window.close() 真正退出）
   ipcMain.handle('app:quit', () => {
     isQuitting = true;
     app.quit();
   });
 
-  // Open external link
+  // 打开外部链接
   ipcMain.handle('shell:openExternal', async (event, url) => {
-    // SECURITY: whitelist protocols to prevent RCE via dangerous protocols
+  // 安全：对协议进行白名单验证，防止通过危险协议实现 RCE
     const allowedProtocols = ['http:', 'https:', 'mailto:'];
     const allowedDomains = [
       'github.com',
@@ -556,13 +555,13 @@ function setupIPC() {
     await shell.openExternal(url);
   });
   
-  // Open data folder
+  // 打开数据文件夹
   ipcMain.handle('shell:openDataFolder', () => {
     const dataPath = app.getPath('userData');
     shell.openPath(dataPath);
   });
 
-  // Open any folder (with path validation)
+  // 打开任意文件夹（带路径验证）
   ipcMain.handle('shell:openFolder', async (event, folderPath) => {
     if (!folderPath || typeof folderPath !== 'string') {
       throw new Error('Invalid folder path');
@@ -581,14 +580,14 @@ function setupIPC() {
     await shell.openPath(resolved);
   });
 
-  // Minimize to tray
+  // 最小化到托盘
   ipcMain.handle('window:minimizeToTray', () => {
     if (mainWindow) {
       mainWindow.hide();
     }
   });
   
-  // Window controls
+  // 窗口控制
   ipcMain.handle('window:minimize', () => {
     if (mainWindow) {
       mainWindow.minimize();
@@ -607,7 +606,7 @@ function setupIPC() {
   
   ipcMain.handle('window:close', () => {
     if (mainWindow) {
-      // Trigger the close event which will handle tray logic
+      // 触发 close 事件，由事件处理托盘逻辑
       mainWindow.close();
     }
   });
@@ -616,15 +615,15 @@ function setupIPC() {
     return mainWindow ? mainWindow.isMaximized() : false;
   });
   
-  // Check backend health
+  // 检查后端健康状态
   ipcMain.handle('backend:checkHealth', async () => {
     return await checkBackendHealth();
   });
   
-  // Restart backend
+  // 重启后端
   let lastBackendRestart = 0;
   ipcMain.handle('backend:restart', async () => {
-    // SECURITY: rate limit backend restarts to prevent DoS
+    // 安全：限制后端重启频率以防止 DoS
     const now = Date.now();
     if (now - lastBackendRestart < 30000) {
       throw new Error('Backend restart rate limited: please wait 30 seconds');
@@ -635,7 +634,7 @@ function setupIPC() {
     return true;
   });
   
-  // Select folder dialog
+  // 选择文件夹对话框
   ipcMain.handle('dialog:selectFolder', async (event, defaultPath) => {
     if (!mainWindow) return { canceled: true };
     
@@ -648,17 +647,17 @@ function setupIPC() {
   });
 }
 
-// SECURITY: Root certificate installation removed to prevent MITM attacks.
-// Self-signed root certificates should NEVER be installed into the system trust store.
+// 安全：已移除根证书安装以防止 MITM 攻击。
+// 自签名根证书绝不应安装到系统信任存储中。
 
-// Single instance lock — must be checked BEFORE app.whenReady() to prevent
-// a second instance from initializing backend processes and creating windows
+// 单实例锁——必须在 app.whenReady() 之前检查，防止
+// 第二个实例初始化后端进程和创建窗口
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   log('Another instance is already running, quitting...');
   app.quit();
-  // return is unreachable due to app.quit(), but explicitly return for clarity
+  // 因 app.quit() 而无法到达此处，但为清晰显式返回
 }
 
 app.on('second-instance', () => {
@@ -672,28 +671,28 @@ app.on('second-instance', () => {
 
 
 
-// App event handlers
+// 应用事件处理
 app.whenReady().then(async () => {
   log('App is ready');
   
   try {
-    // SECURITY: Root certificate installation removed to prevent MITM attacks.
+    // 安全：已移除根证书安装以防止 MITM 攻击。
     
-    // Check if backend is already running (e.g., started by start-dev.bat)
+    // 检查后端是否已在运行（例如由 start-dev.bat 启动）
     const isBackendAlreadyRunning = await checkBackendHealth();
     
     if (isBackendAlreadyRunning) {
       log('Backend is already running (likely started by dev script), skipping backend startup');
     } else {
-      // Start backend only if not already running
+      // 仅当后端未在运行时才启动
       await startBackend();
     }
     
-    // Register IPC handlers BEFORE creating the window so the renderer
-    // can retrieve the auth token immediately on load.
+    // 在创建窗口之前注册 IPC 处理程序，以便渲染进程
+    // 可以在加载时立即获取认证令牌。
     setupIPC();
 
-    // Create window and tray
+    // 创建窗口和托盘
     createWindow();
     createTray();
     
@@ -701,7 +700,7 @@ app.whenReady().then(async () => {
     log(`Failed to initialize: ${error.message}`, 'error');
     log(`Stack trace: ${error.stack}`, 'error');
     
-    // Gather diagnostic information
+    // 收集诊断信息
     const paths = getPaths();
     const { command, args, cwd } = getBackendExecutableInfo();
 
@@ -715,10 +714,10 @@ app.whenReady().then(async () => {
       processResourcesPath: process.resourcesPath,
     };
     
-    // Show diagnostic window
+    // 显示诊断窗口
     createDiagnosticWindow(startupLogs, diagnosticPaths, error);
     
-    // Also show simple error dialog
+    // 同时显示简单错误对话框
     dialog.showErrorBox(
       'Initialization Error', 
       `Failed to start: ${error.message}\n\nDiagnostic window opened with details.`
@@ -728,8 +727,8 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    // On Windows/Linux, keep app running in tray
-    // Don't quit unless explicitly requested
+    // 在 Windows/Linux 上，保持应用在托盘运行
+    // 除非显式请求，否则不退出
   }
 });
 
@@ -753,7 +752,7 @@ app.on('quit', () => {
   log('App is quitting');
 });
 
-// SECURITY: Prevent new window creation and validate URLs
+// 安全：防止创建新窗口并验证 URL
 app.on('web-contents-created', (event, contents) => {
   contents.on('new-window', (event, navigationUrl) => {
     event.preventDefault();
@@ -770,7 +769,7 @@ app.on('web-contents-created', (event, contents) => {
   });
 });
 
-// Handle certificate errors in development
+// 处理开发模式下的证书错误
 app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
   if (isDevMode) {
     try {
@@ -788,33 +787,33 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
   callback(false);
 });
 
-// Kill all Papyrus processes (for Windows installer/updater)
-// WARNING: This function should ONLY be called by the installer/updater, not by the app itself
-// Calling this during app startup will kill the app itself
+// 终止所有 Papyrus 进程（用于 Windows 安装程序/更新程序）
+// 警告：此函数仅应由安装程序/更新程序调用，不应由应用自身调用
+// 在应用启动期间调用此函数将杀死应用自身
 function killAllPapyrusProcesses() {
   if (process.platform !== 'win32') return;
   
   try {
     log('Killing any existing Papyrus processes...');
-    // Kill Papyrus Desktop.exe (main app)
+    // 终止 Papyrus Desktop.exe（主应用）
     try {
       execSync('taskkill /F /IM "Papyrus Desktop.exe" 2>nul', { stdio: 'pipe' });
       log('Killed Papyrus Desktop.exe processes');
     } catch (e) {
-      // No processes found or already killed
+      // 未找到进程或已杀死
     }
-    // Wait a bit for processes to fully terminate
+    // 等待进程完全终止
     execSync('timeout /t 1 /nobreak >nul 2>&1', { stdio: 'pipe' });
   } catch (error) {
     log(`Error killing processes: ${error.message}`, 'error');
   }
 }
 
-// NOTE: killAllPapyrusProcesses() is intentionally NOT called here.
-// It should only be called by the installer/updater to avoid the app killing itself.
-// See: https://github.com/electron/electron/issues/36554
+// 注意：此处有意不调用 killAllPapyrusProcesses()。
+// 它只应由安装程序/更新程序调用，以避免应用杀死自身。
+// 参见：https://github.com/electron/electron/issues/36554
 
-// Error handling
+// 错误处理
 process.on('uncaughtException', (error) => {
   log(`Uncaught exception: ${error.message}`, 'error');
   log(error.stack, 'error');

@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../../../utils/helpers';
 import { useState } from 'react';
 import { Modal, Form, Input, Select, Button, Typography } from '@arco-design/web-react';
 import { IconPlus, IconDelete } from '@arco-design/web-react/icon';
@@ -76,7 +77,7 @@ const AddProviderModal = ({ visible, onClose, onProviderAdded, t }: AddProviderM
         })
         .catch(err => {
           console.error('Failed to add provider:', err);
-          const msg = err instanceof Error ? err.message : String(err);
+          const msg = toErrorMessage(err);
           if (msg.includes('已存在')) {
             window.dispatchEvent(new CustomEvent('papyrus_ai_config_changed'));
           } else {

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Version Sync Script
+ * 版本同步脚本
  *
  * 单一真相源：根目录 package.json
  * 同步目标：frontend/package.json、backend/package.json、AboutView.tsx 硬编码回退值
  *
- * Usage:
+ * 用法：
  *   node scripts/sync-version.js
  */
 

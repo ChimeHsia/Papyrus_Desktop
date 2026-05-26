@@ -1,3 +1,4 @@
+import { toErrorMessage } from './helpers.js';
 import fs, { Dir } from 'node:fs';
 import path from 'node:path';
 
@@ -85,7 +86,7 @@ export class PapyrusLogger {
     try {
       fs.appendFileSync(filePath, line, 'utf8');
     } catch {
-      // Silently fail to avoid infinite loops
+      // 静默失败以避免无限循环
     }
   }
 
@@ -105,11 +106,11 @@ export class PapyrusLogger {
         try {
           fs.unlinkSync(file.path);
         } catch {
-          // Ignore
+          // 忽略
         }
       }
     } catch {
-      // Ignore
+      // 忽略
     }
   }
 
@@ -139,7 +140,7 @@ export class PapyrusLogger {
       this._cleanupOldLogs();
       }
     } catch (e){
-      console.error(`日志轮转失败: ${e instanceof Error ? e.message : String(e)}`);
+      console.error(`日志轮转失败: ${toErrorMessage(e)}`);
     }
   }
 
@@ -266,7 +267,7 @@ export class PapyrusLogger {
     try {
       fs.appendFileSync(filePath, JSON.stringify(payload, null, 0) + '\n', 'utf8');
     } catch {
-      // Ignore
+      // 忽略
     }
   }
 
@@ -315,7 +316,7 @@ export class PapyrusLogger {
         try {
           fs.writeFileSync(file, '', 'utf8');
         } catch {
-          // Ignore
+          // 忽略
         }
       }
     }

@@ -49,7 +49,7 @@ export async function fetchSolarTerm(date: Date): Promise<string | null> {
   const apiKey = localStorage.getItem('papyrus_solar_term_api_key');
   if (!apiUrl) return null;
 
-  // Validate URL: must be http/https and not a private address
+  // 验证 URL：必须是 http/https 且非私有地址
   let validatedUrl: URL;
   try {
     validatedUrl = new URL(apiUrl);

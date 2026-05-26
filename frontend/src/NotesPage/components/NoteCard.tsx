@@ -4,19 +4,7 @@ import { IconFolder } from '@arco-design/web-react/icon';
 import { useTranslation } from 'react-i18next';
 import type { Note } from '../types';
 import { PRIMARY_COLOR } from '../constants';
-
-function formatTimestamp(timestamp: number, t: (key: string, options?: Record<string, unknown>) => string): string {
-  const now = new Date();
-  const date = new Date(timestamp * 1000);
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return t('notesPage.today');
-  if (diffDays === 1) return t('notesPage.yesterday');
-  if (diffDays < 7) return t('notesPage.daysAgo', { count: diffDays });
-  if (diffDays < 30) return t('notesPage.weeksAgo', { count: Math.floor(diffDays / 7) });
-  return t('notesPage.monthsAgo', { count: Math.floor(diffDays / 30) });
-}
+import { formatTimestamp } from '../../utils/formatters';
 
 interface NoteCardProps {
   note: Note;
@@ -51,6 +39,7 @@ export const NoteCard = ({ note, onClick, selectable, selected, onToggleSelect }
       onClick={selectable ? () => onToggleSelect?.(note.id) : onClick}
       style={cardStyle}
     >
+      {/* 笔记卡片 */}
       {selectable && (
         <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 1 }} onClick={e => e.stopPropagation()}>
           <Checkbox

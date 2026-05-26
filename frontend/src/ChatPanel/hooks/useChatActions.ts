@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../utils/helpers';
 import { useState, useRef, useCallback } from 'react';
 import { Message as ArcoMessage } from '@arco-design/web-react';
 import type { Message, SSEEvent, SelectedFile } from '../types';
@@ -199,7 +200,7 @@ export function useChatActions({
                           }
                         }
                       } catch {
-                        // ignore malformed JSON
+                        // 忽略格式错误的 JSON
                       }
                       match = toolPattern.exec(newContent);
                     }
@@ -344,7 +345,7 @@ export function useChatActions({
         try {
           const errBody = await response.json();
           if (errBody.error) errMsg = errBody.error;
-        } catch { /* ignore parse errors */ }
+        } catch { /* 忽略解析错误 */ }
         throw new Error(errMsg);
       }
 
@@ -393,7 +394,7 @@ export function useChatActions({
         }
         ArcoMessage.error(errorMessage);
 
-        const errorContent = '❌ ' + errorMessage;
+        const errorContent = '❌ ' + (error instanceof Error ? error.message : errorMessage);
 
         setMessages((prev) => {
           const lastIndex = prev.length - 1;
@@ -465,7 +466,7 @@ export function useChatActions({
           try {
             const errBody = await response.json();
             if (errBody.error) errMsg = errBody.error;
-          } catch { /* ignore parse errors */ }
+          } catch { /* 忽略解析错误 */ }
           throw new Error(errMsg);
         }
         const data = await response.json();
@@ -501,7 +502,7 @@ export function useChatActions({
       })
       .catch((error) => {
         console.error('Tool approve failed:', error);
-        ArcoMessage.error(`工具批准请求失败: ${error instanceof Error ? error.message : String(error)}`);
+        ArcoMessage.error(`工具批准请求失败: ${toErrorMessage(error)}`);
         setMessages((prev) => {
           const msgIndex = prev.findIndex((m) => m.id === messageId);
           if (msgIndex === -1) return prev;
@@ -554,7 +555,7 @@ export function useChatActions({
           try {
             const errBody = await response.json();
             if (errBody.error) errMsg = errBody.error;
-          } catch { /* ignore parse errors */ }
+          } catch { /* 忽略解析错误 */ }
           throw new Error(errMsg);
         }
         const data = await response.json();
@@ -564,7 +565,7 @@ export function useChatActions({
       })
       .catch((error) => {
         console.error('Tool reject failed:', error);
-        ArcoMessage.error(`工具拒绝请求失败: ${error instanceof Error ? error.message : String(error)}`);
+        ArcoMessage.error(`工具拒绝请求失败: ${toErrorMessage(error)}`);
         setMessages((prev) => {
           const msgIndex = prev.findIndex((m) => m.id === messageId);
           if (msgIndex === -1) return prev;

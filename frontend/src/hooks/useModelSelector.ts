@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api';
 import { buildModelOptions, findModelOption, getDefaultModel, type ModelOption } from '../utils/modelSelector';
 
-export function useModelSelector() {
+export function useModelSelector(enabled = true) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -84,8 +84,10 @@ export function useModelSelector() {
   }, [loadModels]);
 
   useEffect(() => {
-    loadModels();
-  }, [loadModels]);
+    if (enabled) {
+      loadModels();
+    }
+  }, [enabled, loadModels]);
 
   useEffect(() => {
     const handleConfigChange = () => {

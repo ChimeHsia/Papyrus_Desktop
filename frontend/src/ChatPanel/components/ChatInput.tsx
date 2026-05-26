@@ -61,6 +61,8 @@ export function ChatInput({
 
   return (
     <div className="chat-input-area" style={{ minHeight: 118, height: 'auto' }}>
+      {/* 聊天输入区 */}
+      {/* 已选文件列表 */}
       {selectedFiles.length > 0 && (
         <div className="chat-file-list">
           <div className="chat-file-list-header">
@@ -96,6 +98,7 @@ export function ChatInput({
           </div>
         </div>
       )}
+      {/* 文本输入框 */}
       <textarea
         className="chat-textarea"
         placeholder={
@@ -111,6 +114,7 @@ export function ChatInput({
         onKeyDown={handleKeyDown}
         disabled={isGenerating || !configChecked}
       />
+      {/* 底部工具栏 */}
       <ChatToolbar
         mode={mode}
         reasoning={reasoning}
@@ -124,6 +128,7 @@ export function ChatInput({
         onStopGeneration={onStopGeneration}
         text={text}
       />
+      {/* 隐藏的文件选择器 */}
       <input
         ref={fileInputRef}
         type="file"

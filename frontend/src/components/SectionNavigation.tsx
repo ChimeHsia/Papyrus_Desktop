@@ -159,11 +159,12 @@ export const SectionNavigation: React.FC<SectionNavigationProps> = ({
   }
 
   return (
-    <nav 
+    <nav
       className="aaa-section-nav-panel"
       aria-label="页面内容"
     >
-      <Text 
+      {/* 导航面板标题 */}
+      <Text
         bold 
         style={{ 
           fontSize: 13, 
@@ -175,6 +176,7 @@ export const SectionNavigation: React.FC<SectionNavigationProps> = ({
         页面内容
       </Text>
       <ul role="list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {/* 页面标题导航项 */}
         {headings.map((heading) => (
           <li 
             key={heading.id}

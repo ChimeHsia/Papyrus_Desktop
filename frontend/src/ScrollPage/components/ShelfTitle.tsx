@@ -1,6 +1,7 @@
 import { Typography } from '@arco-design/web-react';
 import type { ShelfTitleProps } from '../types';
 
+// 卷标标题组件：显示书卷的分组标题
 const ShelfTitle = ({ children }: ShelfTitleProps) => (
   <Typography.Title
     heading={2}

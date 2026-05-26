@@ -125,7 +125,7 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Strip the "data:...;base64," prefix
+      // 去除 "data:...;base64," 前缀
       const base64 = result.split(',')[1];
       resolve(base64);
     };

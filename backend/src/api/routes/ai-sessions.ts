@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../utils/helpers.js';
 import type { FastifyInstance } from 'fastify';
 import { aiManager } from './ai-chat.js';
 
@@ -38,7 +39,7 @@ export default async function aiSessionsRoutes(fastify: FastifyInstance): Promis
         activeSessionId: sessionId,
       });
     } catch (e) {
-      reply.status(400).send({ success: false, error: e instanceof Error ? e.message : String(e) });
+      reply.status(400).send({ success: false, error: toErrorMessage(e) });
     }
   });
 
@@ -53,7 +54,7 @@ export default async function aiSessionsRoutes(fastify: FastifyInstance): Promis
       const session = aiManager.renameSession(sessionId, payload.title);
       reply.send({ success: true, session });
     } catch (e) {
-      reply.status(400).send({ success: false, error: e instanceof Error ? e.message : String(e) });
+      reply.status(400).send({ success: false, error: toErrorMessage(e) });
     }
   });
 
@@ -66,7 +67,7 @@ export default async function aiSessionsRoutes(fastify: FastifyInstance): Promis
         activeSessionId: result.activeSessionId,
       });
     } catch (e) {
-      reply.status(400).send({ success: false, error: e instanceof Error ? e.message : String(e) });
+      reply.status(400).send({ success: false, error: toErrorMessage(e) });
     }
   });
 

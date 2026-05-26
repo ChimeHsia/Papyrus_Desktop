@@ -49,6 +49,7 @@ const ManageCollectionModal = ({
 
   const filteredCards = cards.filter(c => collectionId && (c.tags || []).includes(collectionId));
 
+  // 管理收藏集弹窗：查看、移除卡片或删除整个收藏集
   return (
     <Modal
       title={t('scrollPage.manageCollection', { name: collectionId || '' })}

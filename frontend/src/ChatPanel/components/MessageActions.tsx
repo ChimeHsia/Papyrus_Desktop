@@ -10,6 +10,7 @@ import {
 import type { Message } from '../types';
 import { api } from '../../api';
 import { stripMdTitle } from '../utils';
+import type { ReactElement } from 'react';
 
 export interface MessageActionsProps {
   message: Message;
@@ -18,6 +19,13 @@ export interface MessageActionsProps {
   onMessagesChange: React.Dispatch<React.SetStateAction<Message[]>>;
   onSendMessage: () => void;
   onTextOverride: (text: string) => void;
+}
+
+interface ActionDef {
+  key: string;
+  label: string;
+  icon: ReactElement;
+  handler?: () => void;
 }
 
 export function MessageActions({
@@ -41,10 +49,6 @@ export function MessageActions({
         onSendMessage();
       },
     });
-  };
-
-  const handleEdit = () => {
-    return { messageId: message.id, draft: message.content };
   };
 
   const handleCopy = () => {
@@ -74,113 +78,35 @@ export function MessageActions({
     onMessagesChange((prev) => prev.filter((m) => m.id !== message.id));
   };
 
-  if (message.role === 'user') {
-    return (
-      <div className="chat-message-actions">
-        <Tooltip content="重新生成" mini>
-          <button
-            className="chat-message-action-btn"
-            aria-label="重新生成"
-            disabled={isGenerating}
-            onClick={handleRegenerate}
-          >
-            <IconRefresh />
-          </button>
-        </Tooltip>
-        <Tooltip content="编辑" mini>
-          <button
-            className="chat-message-action-btn"
-            aria-label="编辑"
-            disabled={isGenerating}
-          >
-            <IconEdit />
-          </button>
-        </Tooltip>
-        <Tooltip content="复制" mini>
-          <button
-            className="chat-message-action-btn"
-            aria-label="复制"
-            disabled={isGenerating}
-            onClick={handleCopy}
-          >
-            <IconCopy />
-          </button>
-        </Tooltip>
-        <Tooltip content="删除" mini>
-          <button
-            className="chat-message-action-btn"
-            aria-label="删除"
-            disabled={isGenerating}
-            onClick={handleDelete}
-          >
-            <IconDelete />
-          </button>
-        </Tooltip>
-      </div>
-    );
-  }
+  const userActions: ActionDef[] = [
+    { key: 'regenerate', label: '重新生成', icon: <IconRefresh />, handler: handleRegenerate },
+    { key: 'edit', label: '编辑', icon: <IconEdit /> },
+    { key: 'copy', label: '复制', icon: <IconCopy />, handler: handleCopy },
+    { key: 'delete', label: '删除', icon: <IconDelete />, handler: handleDelete },
+  ];
+
+  const assistantActions: ActionDef[] = [
+    ...userActions,
+    { key: 'translate', label: '翻译', icon: <IconTranslate />, handler: handleTranslate },
+    { key: 'saveNote', label: '保存到笔记', icon: <IconSave />, handler: handleSaveToNote },
+  ];
+
+  const actions = message.role === 'user' ? userActions : assistantActions;
 
   return (
     <div className="chat-message-actions">
-      <Tooltip content="重新生成" mini>
-        <button
-          className="chat-message-action-btn"
-          aria-label="重新生成"
-          disabled={isGenerating}
-          onClick={handleRegenerate}
-        >
-          <IconRefresh />
-        </button>
-      </Tooltip>
-      <Tooltip content="编辑" mini>
-        <button
-          className="chat-message-action-btn"
-          aria-label="编辑"
-          disabled={isGenerating}
-        >
-          <IconEdit />
-        </button>
-      </Tooltip>
-      <Tooltip content="复制" mini>
-        <button
-          className="chat-message-action-btn"
-          aria-label="复制"
-          disabled={isGenerating}
-          onClick={handleCopy}
-        >
-          <IconCopy />
-        </button>
-      </Tooltip>
-      <Tooltip content="翻译" mini>
-        <button
-          className="chat-message-action-btn"
-          aria-label="翻译"
-          disabled={isGenerating}
-          onClick={handleTranslate}
-        >
-          <IconTranslate />
-        </button>
-      </Tooltip>
-      <Tooltip content="保存到笔记" mini>
-        <button
-          className="chat-message-action-btn"
-          aria-label="保存到笔记"
-          disabled={isGenerating}
-          onClick={handleSaveToNote}
-        >
-          <IconSave />
-        </button>
-      </Tooltip>
-      <Tooltip content="删除" mini>
-        <button
-          className="chat-message-action-btn"
-          aria-label="删除"
-          disabled={isGenerating}
-          onClick={handleDelete}
-        >
-          <IconDelete />
-        </button>
-      </Tooltip>
+      {actions.map((action) => (
+        <Tooltip key={action.key} content={action.label} mini>
+          <button
+            className="chat-message-action-btn"
+            aria-label={action.label}
+            disabled={isGenerating}
+            onClick={action.handler}
+          >
+            {action.icon}
+          </button>
+        </Tooltip>
+      ))}
     </div>
   );
 }

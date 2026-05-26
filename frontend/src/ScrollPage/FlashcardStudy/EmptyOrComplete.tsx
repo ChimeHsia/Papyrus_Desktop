@@ -17,6 +17,7 @@ export function EmptyOrComplete({
   onReset,
   onExit,
 }: EmptyOrCompleteProps) {
+  // 空状态或完成状态：今日复习完毕或演示结束
   return (
     <div
       style={{
@@ -29,6 +30,7 @@ export function EmptyOrComplete({
         padding: '48px',
       }}
     >
+      {/* 空状态图标与描述 */}
       <Empty
         icon={<div style={{ fontSize: '64px' }}>🎉</div>}
         description={
@@ -46,6 +48,7 @@ export function EmptyOrComplete({
         }
       />
 
+      {/* 本次复习统计数据 */}
       {stats.studied > 0 && (
         <div
           style={{

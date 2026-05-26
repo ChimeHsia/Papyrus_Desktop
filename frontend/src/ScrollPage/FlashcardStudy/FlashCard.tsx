@@ -9,6 +9,7 @@ interface FlashCardProps {
 }
 
 export function FlashCard({ card, studyState, onReveal }: FlashCardProps) {
+  // 卡片渲染：显示问题和答案，点击或按空格揭晓
   return (
     <div
       onClick={onReveal}
@@ -55,6 +56,7 @@ export function FlashCard({ card, studyState, onReveal }: FlashCardProps) {
         </Typography.Paragraph>
       </div>
 
+      {/* 分隔线 */}
       <div
         style={{
           height: '1px',
@@ -65,6 +67,7 @@ export function FlashCard({ card, studyState, onReveal }: FlashCardProps) {
         }}
       />
 
+      {/* 答案区域 */}
       <div
         style={{
           flex: 1,

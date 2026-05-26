@@ -50,6 +50,8 @@ export function ChatToolbar({
 
   return (
     <div className="chat-toolbar">
+      {/* 输入工具栏 */}
+      {/* 左侧：模式切换 + 文件上传 */}
       <div className="chat-toolbar-left">
         <Dropdown
           trigger="click"
@@ -99,6 +101,7 @@ export function ChatToolbar({
           <IconAt aria-hidden="true" />
         </button>
       </div>
+      {/* 右侧：推理 + 工具 + 发送 */}
       <div className="chat-toolbar-right">
         <button
           className={`chat-toolbar-btn${reasoning ? ' chat-toolbar-btn-active' : ''}`}

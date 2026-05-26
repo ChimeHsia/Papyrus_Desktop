@@ -139,22 +139,28 @@ const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
   const renderSection = (sectionId: string) => {
     switch (sectionId) {
       case 'general-section':
-        return generalShortcutKeys.map(({ key, label }, index) => (
-          <SettingItem
-            key={key}
-            title={label}
-            divider={index !== generalShortcutKeys.length - 1}
-          >
-            <ShortcutInput
-              value={shortcuts[key as keyof ShortcutConfig]}
-              onEdit={() => startEditing(key as keyof ShortcutConfig)}
-            />
-          </SettingItem>
-        ));
+        return (
+          <>
+            {/* 通用快捷键列表 */}
+            {generalShortcutKeys.map(({ key, label }, index) => (
+              <SettingItem
+                key={key}
+                title={label}
+                divider={index !== generalShortcutKeys.length - 1}
+              >
+                <ShortcutInput
+                  value={shortcuts[key as keyof ShortcutConfig]}
+                  onEdit={() => startEditing(key as keyof ShortcutConfig)}
+                />
+              </SettingItem>
+            ))}
+          </>
+        );
 
       case 'editor-section':
         return (
           <>
+            {/* 编辑器快捷键列表 */}
             {editorShortcutKeys.map(({ key, label }, index) => (
               <SettingItem
                 key={key}
@@ -177,6 +183,7 @@ const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
       case 'study-section':
         return (
           <>
+            {/* 学习模式快捷键列表 */}
             {studyShortcutKeys.map(({ key, label, desc }, index) => (
               <SettingItem
                 key={key}
@@ -204,6 +211,7 @@ const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
 
   return (
     <>
+      {/* 快捷键设置主布局 */}
       <SettingsViewLayout
         title={t('shortcutsView.title')}
         description={t('shortcutsView.titleDesc')}
@@ -220,6 +228,7 @@ const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
         {renderSection}
       </SettingsViewLayout>
 
+      {/* 编辑快捷键弹窗 */}
       <Modal
         title={t('shortcutsView.editShortcut')}
         visible={editingKey !== null}
@@ -243,6 +252,7 @@ const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
         </div>
       </Modal>
 
+      {/* 重置快捷键确认弹窗 */}
       <Modal
         title={t('shortcutsView.confirmReset')}
         visible={resetModalVisible}

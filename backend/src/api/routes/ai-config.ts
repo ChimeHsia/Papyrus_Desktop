@@ -1,7 +1,8 @@
+import { toErrorMessage } from '../../utils/helpers.js';
 import type { FastifyInstance } from 'fastify';
 import { aiConfig } from '../../ai/config-instance.js';
 import { isPrivateUrl } from '../../ai/config.js';
-import { getProviderApiKeyFromDB, getProviderConfigFromDB, syncDBToAIConfig } from '../../ai/db-sync.js';
+import { getProviderApiKeyFromDB, getProviderConfigFromDB } from '../../db/database.js';
 import { loadAllProviders } from '../../db/database.js';
 import { fetchWithProxy } from '../../utils/proxy.js';
 import { isKeylessProvider } from './ai-common.js';
@@ -78,9 +79,6 @@ export default async function aiConfigRoutes(fastify: FastifyInstance): Promise<
 
   fastify.post('/config/ai/test', async (_request, reply) => {
     try {
-      // 在处理请求前，同步最新的配置
-      syncDBToAIConfig(aiConfig);
-      
       const providerName = aiConfig.config.current_provider;
       const providerConfig = getProviderConfigFromDB(providerName);
       if (!providerConfig) {
@@ -114,7 +112,7 @@ export default async function aiConfigRoutes(fastify: FastifyInstance): Promise<
             reply.send({ success: false, error: `${providerName} 返回错误: ${resp.status}` });
           }
         } catch (e) {
-          reply.send({ success: false, error: `${providerName} 连接失败: ${e instanceof Error ? e.message : String(e)}` });
+          reply.send({ success: false, error: `${providerName} 连接失败: ${toErrorMessage(e)}` });
         }
         return;
       }
@@ -152,7 +150,7 @@ export default async function aiConfigRoutes(fastify: FastifyInstance): Promise<
           reply.send({ success: false, error: `连接失败: HTTP ${resp.status}` });
         }
       } catch (e) {
-        reply.send({ success: false, error: `连接测试失败: ${e instanceof Error ? e.message : String(e)}` });
+        reply.send({ success: false, error: `连接测试失败: ${toErrorMessage(e)}` });
       }
     } catch {
       reply.send({ success: false, error: '连接测试失败，请检查网络或配置' });

@@ -8,15 +8,15 @@ const rootPkg = JSON.parse(
 )
 const appVersion = rootPkg.version ?? 'unknown'
 
-// TS + React 19 + Arco scaffold
+// TS + React 19 + Arco 脚手架
 export default defineConfig({
-  base: './', // Required for Electron to load files locally
+  base: './', // Electron 需要相对路径来加载本地文件
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
   },
   plugins: [
     react({
-      // keep classic runtime if you still want `import React from 'react'`
+      // 如需保留 `import React from 'react'` 则使用 classic 运行时
       // jsxRuntime: 'classic',
     }),
   ],

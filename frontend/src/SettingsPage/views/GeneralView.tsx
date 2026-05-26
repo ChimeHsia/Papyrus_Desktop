@@ -141,6 +141,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
       case 'startup-section':
         return (
           <>
+            {/* 启动与窗口行为设置 */}
             <SettingItem title={t('generalView.autoStart')} desc={t('generalView.autoStartDesc')}>
               <Switch checked={autoStart} onChange={setAutoStart} />
             </SettingItem>
@@ -158,6 +159,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
       case 'language-section':
         return (
           <>
+            {/* 语言与日期格式设置 */}
             <SettingItem title={t('generalView.languageLabel')} desc={t('generalView.languageDesc')}>
               <Select value={language} onChange={setLanguage} style={{ width: 160 }}>
                 <Option value="zh-CN">简体中文</Option>
@@ -181,6 +183,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
       case 'logs-section':
         return (
           <>
+            {/* 日志目录选择 */}
             <SettingItem title={t('generalView.logDir')} desc={t('generalView.logDirDesc')}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <Input
@@ -207,6 +210,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
               </div>
             </SettingItem>
 
+            {/* 日志级别设置 */}
             <SettingItem title={t('generalView.logLevel')} desc={t('generalView.logLevelDesc')}>
               <Select
                 value={logsConfig.log_level}
@@ -220,6 +224,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
               </Select>
             </SettingItem>
 
+            {/* 日志轮转与保留数量 */}
             <SettingItem title={t('generalView.logRotation')} desc={t('generalView.logRotationDesc')}>
               <Switch
                 checked={logsConfig.log_rotation}
@@ -245,6 +250,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
   };
 
   return (
+    // 通用设置主布局
     <SettingsViewLayout
       title={t('settings.general')}
       icon={IconSettings}

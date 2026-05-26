@@ -26,7 +26,7 @@ export const loadUserProfile = (): UserProfile => {
       return JSON.parse(saved);
     }
   } catch {
-    // ignore
+    // 忽略
   }
   return { userId: '', avatarUrl: null };
 };
@@ -36,7 +36,7 @@ export const saveUserProfile = (profile: UserProfile) => {
     localStorage.setItem('papyrus_user_profile', JSON.stringify(profile));
     window.dispatchEvent(new CustomEvent('papyrus_user_profile_changed'));
   } catch {
-    // ignore
+    // 忽略
   }
 };
 
@@ -47,7 +47,7 @@ export const loadAgentSettings = (): AgentSettings => {
       return JSON.parse(saved);
     }
   } catch {
-    // ignore
+    // 忽略
   }
   return { agentModeEnabled: false };
 };
@@ -57,7 +57,7 @@ export const saveAgentSettings = (settings: AgentSettings) => {
     localStorage.setItem('papyrus_agent_settings', JSON.stringify(settings));
     window.dispatchEvent(new CustomEvent('papyrus_agent_settings_changed', { detail: settings }));
   } catch {
-    // ignore
+    // 忽略
   }
 };
 

@@ -1,6 +1,8 @@
+import { toErrorMessage } from '../../utils/helpers.js';
+import { readNDJSONStream } from '../../utils/stream-reader.js';
 import type { FastifyInstance } from 'fastify';
 import { aiConfig } from '../../ai/config-instance.js';
-import { getProviderConfigFromDB, syncDBToAIConfig } from '../../ai/db-sync.js';
+import { getProviderConfigFromDB } from '../../db/database.js';
 import { isPrivateUrl } from '../../ai/config.js';
 import { fetchWithProxy } from '../../utils/proxy.js';
 import { isKeylessProvider } from './ai-common.js';
@@ -36,16 +38,11 @@ export default async function aiCompletionRoutes(fastify: FastifyInstance): Prom
         return;
       }
     }
-    for (const [key, value] of Object.entries(payload)) {
-      _completionConfig[key] = value;
-    }
+    Object.assign(_completionConfig, payload);
     reply.send({ success: true });
   });
 
   fastify.post('/completion', async (request, reply) => {
-    // 在处理请求前，同步最新的配置
-    syncDBToAIConfig(aiConfig);
-    
     const payload = request.body as CompletionPayload;
     const providerName = aiConfig.config.current_provider;
     const providerConfig = getProviderConfigFromDB(providerName);
@@ -98,30 +95,11 @@ export default async function aiCompletionRoutes(fastify: FastifyInstance): Prom
           return;
         }
 
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            try {
-              const chunk = JSON.parse(line) as unknown;
-              if (chunk === null || typeof chunk !== 'object') continue;
-              const dict = chunk as Record<string, unknown>;
-              const message = dict.message as Record<string, unknown> | undefined;
-              const content = message?.content;
-              if (typeof content === 'string' && content) {
-                reply.raw.write(`data: {"text":${JSON.stringify(content)}}\n\n`);
-              }
-            } catch {
-              // ignore
-            }
+        for await (const chunk of readNDJSONStream<Record<string, unknown>>(resp.body.getReader())) {
+          const message = chunk.message as Record<string, unknown> | undefined;
+          const content = message?.content;
+          if (typeof content === 'string' && content) {
+            reply.raw.write(`data: {"text":${JSON.stringify(content)}}\n\n`);
           }
         }
       } else {
@@ -176,37 +154,13 @@ export default async function aiCompletionRoutes(fastify: FastifyInstance): Prom
           return;
         }
 
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            let lineStr = line;
-            if (lineStr.startsWith('data: ')) {
-              lineStr = lineStr.slice(6);
-            }
-            if (lineStr === '[DONE]') continue;
-            try {
-              const chunk = JSON.parse(lineStr) as unknown;
-              if (chunk === null || typeof chunk !== 'object') continue;
-              const dict = chunk as Record<string, unknown>;
-              const choices = dict.choices as Array<Record<string, unknown>> | undefined;
-              if (!choices || !choices[0]) continue;
-              const delta = choices[0].delta as Record<string, unknown> | undefined;
-              const content = delta?.content;
-              if (typeof content === 'string' && content) {
-                reply.raw.write(`data: {"text":${JSON.stringify(content)}}\n\n`);
-              }
-            } catch {
-              // ignore
-            }
+        for await (const chunk of readNDJSONStream<Record<string, unknown>>(resp.body.getReader(), { prefix: 'data: ' })) {
+          const choices = chunk.choices as Array<Record<string, unknown>> | undefined;
+          if (!choices || !choices[0]) continue;
+          const delta = choices[0].delta as Record<string, unknown> | undefined;
+          const content = delta?.content;
+          if (typeof content === 'string' && content) {
+            reply.raw.write(`data: {"text":${JSON.stringify(content)}}\n\n`);
           }
         }
       }
@@ -214,7 +168,7 @@ export default async function aiCompletionRoutes(fastify: FastifyInstance): Prom
       reply.raw.write(`data: {"done":true}\n\n`);
       reply.raw.end();
     } catch (e) {
-      reply.raw.write(`data: {"error":${JSON.stringify(e instanceof Error ? e.message : String(e))}}\n\n`);
+      reply.raw.write(`data: {"error":${JSON.stringify(toErrorMessage(e))}}\n\n`);
       reply.raw.write(`data: {"done":true}\n\n`);
       reply.raw.end();
     }

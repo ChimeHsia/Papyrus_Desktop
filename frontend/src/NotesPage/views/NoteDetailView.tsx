@@ -1,25 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Typography, Input, Tag, Button, Breadcrumb, Message, Modal, Dropdown } from '@arco-design/web-react';
+import { Typography, Input, Message, Modal } from '@arco-design/web-react';
 import SmartTextArea, { type SmartTextAreaRef } from '../../components/SmartTextArea';
-import { useTranslation } from 'react-i18next';
-const BreadcrumbItem = Breadcrumb.Item;
-import {
-  IconLeft,
-  IconDelete,
-  IconFolder,
-  IconHistory,
-  IconTags,
-  IconPlus,
-  IconH1,
-  IconH2,
-  IconH3,
-  IconLink,
-  IconMindMapping,
-} from '@arco-design/web-react/icon';
 import { RelationsPanel, RelationGraph } from '../components/Relations';
 import type { Note, CreateNoteParams, UpdateNoteParams } from '../types';
-import { PRIMARY_COLOR } from '../constants';
 import { renderMarkdown } from '../../utils/markdown';
+import { OutlineSidebar, generateOutline, scrollToHeading } from '../components/OutlineSidebar';
+import { MetadataEditor } from '../components/MetadataEditor';
+import { NoteHeader } from '../components/NoteHeader';
 
 interface NoteDetailViewProps {
   note: Note | null;
@@ -30,19 +17,6 @@ interface NoteDetailViewProps {
   onDelete?: (id: string) => void;
 }
 
-function formatTimestamp(timestamp: number, t: (key: string, options?: Record<string, unknown>) => string): string {
-  const now = new Date();
-  const date = new Date(timestamp * 1000);
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return t('notesPage.today');
-  if (diffDays === 1) return t('notesPage.yesterday');
-  if (diffDays < 7) return t('notesPage.daysAgo', { count: diffDays });
-  if (diffDays < 30) return t('notesPage.weeksAgo', { count: Math.floor(diffDays / 7) });
-  return t('notesPage.monthsAgo', { count: Math.floor(diffDays / 30) });
-}
-
 export const NoteDetailView = ({
   note,
   isCreateMode: initialIsCreateMode,
@@ -51,7 +25,6 @@ export const NoteDetailView = ({
   onSave,
   onDelete,
 }: NoteDetailViewProps) => {
-  const { t } = useTranslation();
   // 表单状态
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -62,34 +35,21 @@ export const NoteDetailView = ({
   // 关联功能状态
   const [showRelationsPanel, setShowRelationsPanel] = useState(false);
   const [showGraphDrawer, setShowGraphDrawer] = useState(false);
-  
-  // SmartTextArea ref
+
+  // SmartTextArea 引用
   const textAreaRef = useRef<SmartTextAreaRef>(null);
 
   // 脏状态跟踪与防抖自动保存
   const isDirty = useRef(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // 创建模式状态和已创建笔记的 ID（用于创建后的自动保存）
   const [isCreateMode, setIsCreateMode] = useState(initialIsCreateMode);
   const [createdNoteId, setCreatedNoteId] = useState<string | null>(null);
 
-  // 插入标题
-  const insertHeading = (level: number) => {
-    const heading = '#'.repeat(level) + ' ';
-    textAreaRef.current?.insertAtCursor(heading);
-  };
-  
-  // 下拉菜单项
-  const headingMenuItems = [
-    { key: 'h1', label: '一级标题', icon: <IconH1 />, onClick: () => insertHeading(1) },
-    { key: 'h2', label: '二级标题', icon: <IconH2 />, onClick: () => insertHeading(2) },
-    { key: 'h3', label: '三级标题', icon: <IconH3 />, onClick: () => insertHeading(3) },
-  ];
-
   // 锁定状态 - 监听全局编辑锁定
   const [isGloballyLocked, setIsGloballyLocked] = useState(false);
-  
+
   useEffect(() => {
     const handleLockChange = (e: CustomEvent<{ locked: boolean }>) => {
       const newLockedState = e.detail.locked;
@@ -104,7 +64,7 @@ export const NoteDetailView = ({
     return () => window.removeEventListener('papyrus_edit_lock_changed', handleLockChange as EventListener);
   }, [isCreateMode]);
 
-  // 初始化表单 - 编辑模式
+  // 初始化表单 - 编辑模式（使用 note.id 而非整个对象，避免 refreshNotes 后引用变化导致覆盖用户编辑）
   useEffect(() => {
     if (note) {
       setTitle(note.title);
@@ -112,7 +72,7 @@ export const NoteDetailView = ({
       setFolder(note.folder);
       setTags(note.tags);
     }
-  }, [note]);
+  }, [note?.id]);
 
   // 创建模式初始化 - 只在进入创建模式时执行
   useEffect(() => {
@@ -233,54 +193,23 @@ export const NoteDetailView = ({
     }
   };
 
-  const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter(t => t !== tag));
-  };
-
   // 内容区域 ref
   const contentRef = useRef<HTMLDivElement>(null);
-  
-  // 生成大纲，并记录每个标题的行索引
-  const generateOutline = (text: string) => {
-    const lines = text.split('\n');
-    const outline: { level: number; title: string; lineIndex: number }[] = [];
-    lines.forEach((line, index) => {
-      const match = line.match(/^(#{1,3})\s+(.+)/);
-      if (match) {
-        outline.push({
-          level: match[1].length,
-          title: match[2],
-          lineIndex: index,
-        });
-      }
-    });
-    return outline;
-  };
-  
-  // 点击大纲跳转到对应位置
-  const scrollToHeading = (lineIndex: number) => {
-    if (!contentRef.current) return;
-    
-    // 在预览模式下，通过计算行高来估算位置
-    const lineHeight = 27; // 15px font-size * 1.8 line-height
-    const paddingTop = 32; // 内容区 padding-top
-    const metaHeight = 80; // 元信息区域高度估算
-    const targetScrollTop = paddingTop + metaHeight + (lineIndex * lineHeight);
-    
-    contentRef.current.scrollTo({
-      top: targetScrollTop,
-      behavior: 'smooth',
-    });
-  };
 
+  // 生成大纲
   const outline = generateOutline(content);
+
+  // 点击大纲跳转到对应位置
+  const handleHeadingClick = useCallback((lineIndex: number) => {
+    scrollToHeading(lineIndex, contentRef);
+  }, []);
 
   // 触发字数统计事件
   useEffect(() => {
     const chars = content.length;
     const words = content.trim() ? content.trim().split(/\s+/).length : 0;
     const headings = outline.length;
-    
+
     window.dispatchEvent(new CustomEvent('papyrus_note_stats', {
       detail: { chars, words, headings }
     }));
@@ -303,165 +232,26 @@ export const NoteDetailView = ({
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* 顶部栏：面包屑居中 */}
-      <div
-        style={{
-          padding: '16px 24px',
-          borderBottom: '1px solid var(--color-border-2)',
-          background: 'var(--color-bg-1)',
-          display: 'flex',
-          alignItems: 'center',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-        }}
-      >
-        {/* 返回按钮 - 左侧 */}
-        <Button
-          type='text'
-          icon={<IconLeft />}
-          onClick={handleBackWithSave}
-        >
-          返回
-        </Button>
-
-        {/* 面包屑 - 居中 */}
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-          <Breadcrumb>
-            <BreadcrumbItem
-              key="notebook"
-              style={{ cursor: 'pointer' }}
-              onClick={handleBackWithSave}
-            >
-              笔记库
-            </BreadcrumbItem>
-            <BreadcrumbItem key="folder">{folder || note?.folder || '默认'}</BreadcrumbItem>
-            <BreadcrumbItem key="title">{title || note?.title || '新笔记'}</BreadcrumbItem>
-          </Breadcrumb>
-        </div>
-
-        {/* 右侧操作按钮 */}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-          {(isEditable) && (
-            <>
-              <Dropdown droplist={
-                <div style={{ 
-                  background: 'var(--color-bg-1)', 
-                  border: '1px solid var(--color-border-2)',
-                  borderRadius: '4px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                }}>
-                  {headingMenuItems.map(item => (
-                    <div
-                      key={item.key}
-                      onClick={item.onClick}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        color: 'var(--color-text-1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'var(--color-fill-2)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                      }}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </div>
-                  ))}
-                </div>
-              } position='bottom'>
-                <Button type='secondary' icon={<IconPlus />} />
-              </Dropdown>
-              {!isCreateMode && onDelete && (
-                <Button
-                  type='text'
-                  status='danger'
-                  icon={<IconDelete />}
-                  onClick={handleDelete}
-                />
-              )}
-            </>
-          )}
-
-          {!isCreateMode && (
-            <>
-              <Button
-                type={showRelationsPanel ? 'primary' : 'secondary'}
-                icon={<IconLink />}
-                onClick={() => setShowRelationsPanel(!showRelationsPanel)}
-              >
-                关联
-              </Button>
-              <Button
-                type='secondary'
-                icon={<IconMindMapping />}
-                onClick={() => setShowGraphDrawer(true)}
-              >
-                图谱
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      <NoteHeader
+        title={title || note?.title || '新笔记'}
+        folder={folder || note?.folder || '默认'}
+        isEditable={isEditable}
+        isCreateMode={isCreateMode}
+        showRelationsPanel={showRelationsPanel}
+        onBack={handleBackWithSave}
+        onDelete={onDelete ? handleDelete : undefined}
+        onToggleRelations={() => setShowRelationsPanel(!showRelationsPanel)}
+        onToggleGraph={() => setShowGraphDrawer(true)}
+        textAreaRef={textAreaRef}
+      />
 
       {/* 内容区 */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* 左侧：大纲导航 */}
-        <div
-          style={{
-            width: '200px',
-            borderRight: '1px solid var(--color-border-2)',
-            background: 'var(--color-bg-1)',
-            padding: '16px',
-            overflowY: 'auto',
-          }}
-        >
-          <Typography.Text
-            style={{
-              fontSize: '12px',
-              fontWeight: 500,
-              color: 'var(--color-text-2)',
-              display: 'block',
-              marginBottom: '16px',
-            }}
-          >
-            大纲
-          </Typography.Text>
-          {outline.length > 0 ? (
-            outline.map((item, index) => (
-              <div
-                key={index}
-                onClick={() => scrollToHeading(item.lineIndex)}
-                style={{
-                  padding: '4px 8px',
-                  paddingLeft: `${(item.level - 1) * 16 + 8}px`,
-                  fontSize: '13px',
-                  color: 'var(--color-text-2)',
-                  cursor: 'pointer',
-                  borderRadius: '4px',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--color-fill-2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                {item.title}
-              </div>
-            ))
-          ) : (
-            <Typography.Text type='secondary' style={{ fontSize: '12px' }}>
-              使用 # ## ### 创建标题
-            </Typography.Text>
-          )}
-        </div>
+        <OutlineSidebar
+          outline={outline}
+          onHeadingClick={handleHeadingClick}
+        />
 
         {/* 右侧：编辑/预览区 */}
         <div
@@ -474,75 +264,17 @@ export const NoteDetailView = ({
           }}
         >
           {/* 元信息区 */}
-          <div
-            style={{
-              padding: '16px',
-              background: 'var(--color-fill-2)',
-              borderRadius: '8px',
-              border: '1px solid var(--color-border-2)',
-              marginBottom: '24px',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '16px',
-              alignItems: 'center',
-            }}
-          >
-            {isEditable ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <IconFolder style={{ fontSize: '14px', color: 'var(--color-text-2)' }} />
-                  <Input
-                    value={folder}
-                    onChange={setFolder}
-                    style={{ width: '120px' }}
-                    size='small'
-                    className='notes-meta-input'
-                  />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                  <IconTags style={{ fontSize: '14px', color: 'var(--color-text-2)' }} />
-                  {tags.map(tag => (
-                    <Tag
-                      key={tag}
-                      size='small'
-                      color='arcoblue'
-                      closable
-                      onClose={() => handleRemoveTag(tag)}
-                    >
-                      {tag}
-                    </Tag>
-                  ))}
-                  <Input
-                    value={newTag}
-                    onChange={setNewTag}
-                    onPressEnter={handleAddTag}
-                    placeholder='+ 标签'
-                    style={{ width: '80px' }}
-                    size='small'
-                    className='notes-meta-input'
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
-                  <IconFolder style={{ fontSize: '14px' }} />
-                  {note?.folder}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
-                  <IconHistory style={{ fontSize: '14px' }} />
-                  {note ? formatTimestamp(note.updatedAtTimestamp, t) : ''}
-                </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {note?.tags.map(tag => (
-                    <Tag key={tag} size='small' color='arcoblue'>
-                      {tag}
-                    </Tag>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <MetadataEditor
+            isEditable={isEditable}
+            folder={folder}
+            tags={tags}
+            newTag={newTag}
+            note={note}
+            onFolderChange={setFolder}
+            onTagsChange={setTags}
+            onNewTagChange={setNewTag}
+            onAddTag={handleAddTag}
+          />
 
           {/* 标题 */}
           {isEditable ? (

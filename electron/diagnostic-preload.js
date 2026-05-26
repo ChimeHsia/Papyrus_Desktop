@@ -2,7 +2,7 @@ const { contextBridge, app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
-// Path whitelist for diagnostic directory listing
+// 诊断目录列表的路径白名单
 function isAllowedPath(dir) {
   const allowed = [
     app.getPath('userData'),

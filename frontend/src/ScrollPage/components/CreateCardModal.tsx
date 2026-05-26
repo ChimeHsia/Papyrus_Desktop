@@ -23,6 +23,7 @@ const CreateCardModal = ({
     onTagsChange('');
   };
 
+  // 创建卡片弹窗：填写问题、答案和标签
   return (
     <Modal
       title={t('scrollPage.createCard')}

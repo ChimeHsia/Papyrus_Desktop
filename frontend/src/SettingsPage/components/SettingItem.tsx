@@ -20,6 +20,7 @@ const SettingItem = ({
   badge,
   tooltip,
 }: SettingItemProps) => (
+  // 设置项行：标题 + 描述 + 右侧控件
   <div className="settings-item">
     <div className="settings-item-content">
       <div className="settings-item-info">

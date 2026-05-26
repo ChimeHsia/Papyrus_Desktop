@@ -1,7 +1,8 @@
 import { Typography } from '@arco-design/web-react';
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, type Card } from '../api';
+import type { Card } from '../api';
+import { useData } from '../contexts/DataContext';
 import { useCommonCardStyle, CommonCard, CardGroup, PRIMARY_COLOR } from '../components';
 
 interface ReviewItem {
@@ -88,7 +89,7 @@ function calculateReviewQueue(cards: Card[]): ReviewItem[] {
   if (newCards.length > 0) {
     queue.push({
       id: 'new',
-      collectionTitle: '', // translated in render
+      collectionTitle: '', // 在渲染时翻译
       scrollCount: newCards.length,
       estimatedMinutes: Math.ceil(newCards.length * 0.5),
     });
@@ -97,7 +98,7 @@ function calculateReviewQueue(cards: Card[]): ReviewItem[] {
   if (reviewCards.length > 0) {
     queue.push({
       id: 'review',
-      collectionTitle: '', // translated in render
+      collectionTitle: '', // 在渲染时翻译
       scrollCount: reviewCards.length,
       estimatedMinutes: Math.ceil(reviewCards.length * 0.3),
     });
@@ -108,38 +109,13 @@ function calculateReviewQueue(cards: Card[]): ReviewItem[] {
 
 const ReviewQueue = ({ height, onStartStudy }: ReviewQueueProps) => {
   const { t } = useTranslation();
-  const [items, setItems] = useState<ReviewItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchCards = async () => {
-      try {
-        setLoading(true);
-        const response = await api.listCards();
-        if (response.success) {
-          const queue = calculateReviewQueue(response.cards);
-          setItems(queue);
-        }
-      } catch (err) {
-        console.error(t('startPage.fetchDueCardsFailed'), err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCards();
-
-    const handleCardsChanged = () => {
-      fetchCards();
-    };
-    window.addEventListener('papyrus_cards_changed', handleCardsChanged);
-    return () => window.removeEventListener('papyrus_cards_changed', handleCardsChanged);
-  }, []);
+  const { cards, loading: dataLoading } = useData();
+  const items = useMemo(() => calculateReviewQueue(cards), [cards]);
 
   return (
     <CardGroup
       height={height}
-      loading={loading}
+      loading={dataLoading}
       emptyText={t('startPage.noDueCards')}
       showEmptyIcon={true}
     >

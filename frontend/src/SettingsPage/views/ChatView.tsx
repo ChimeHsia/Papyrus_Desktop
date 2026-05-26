@@ -283,6 +283,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       case 'general-section':
         return (
           <>
+            {/* 聊天通用设置：Agent 模式、时间戳、自动滚动、回车发送 */}
             <SettingItem title={t('chatView.agentMode')} desc={t('chatView.agentModeDesc')}>
               <Switch
                 checked={agentModeEnabled}
@@ -307,6 +308,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       case 'user-section':
         return (
           <>
+            {/* 用户标识与头像设置 */}
             <SettingItem title={t('chatView.userId')} desc={t('chatView.userIdDesc')}>
               <Input
                 value={userProfile.userId}
@@ -389,6 +391,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       case 'completion-section':
         return (
           <>
+            {/* AI 补全设置：启用开关、确认模式、触发延迟、最大 Token */}
             <SettingItem title={t('chatView.completionEnabled')} desc={t('chatView.completionEnabledDesc')}>
               <Switch
                 checked={completionEnabled}
@@ -446,6 +449,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       case 'parameters-section':
         return (
           <>
+            {/* 模型参数设置：温度、TopP、最大 Token */}
             {[
               { label: t('chatView.temperature'), min: 0, max: 2, step: 0.1, default: 0.7 },
               { label: t('chatView.topP'), min: 0, max: 1, step: 0.1, default: 0.9 },
@@ -477,6 +481,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
 
   return (
     <>
+      {/* 聊天设置主布局 */}
       <SettingsViewLayout
         title={t('chatView.title')}
         description={t('chatView.titleDesc')}
@@ -496,18 +501,19 @@ const ChatView = ({ onBack }: ChatViewProps) => {
           if (sectionId === 'providers-section') {
             return (
               <>
+                {/* 提供商列表与添加按钮 */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
                   <Button type="primary" icon={<IconPlus />} onClick={() => setAddModalVisible(true)} style={{ borderRadius: '999px', padding: '4px 16px', display: 'flex', alignItems: 'center' }}>
                     {t('chatView.addProvider')}
                   </Button>
                 </div>
-                <ProvidersSection 
-                  providers={providers} 
-                  loadProviders={loadProviders} 
-                  deleteProvider={deleteProvider} 
-                  setDefault={setDefault} 
-                  syncKeyToAIConfig={syncKeyToAIConfig} 
-                  t={t} 
+                <ProvidersSection
+                  providers={providers}
+                  loadProviders={loadProviders}
+                  deleteProvider={deleteProvider}
+                  setDefault={setDefault}
+                  syncKeyToAIConfig={syncKeyToAIConfig}
+                  t={t}
                 />
               </>
             );
@@ -515,10 +521,11 @@ const ChatView = ({ onBack }: ChatViewProps) => {
           if (sectionId === 'models-section') {
             return (
               <>
+                {/* 模型列表与添加按钮 */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-                  <Button 
-                    type="primary" 
-                    icon={<IconPlus />} 
+                  <Button
+                    type="primary"
+                    icon={<IconPlus />}
                     onClick={() => {
                       const enabledProvider = providers.find(p => p.enabled);
                       if (!enabledProvider) {
@@ -526,7 +533,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
                         return;
                       }
                       openModelModal(enabledProvider.id);
-                    }} 
+                    }}
                     style={{ borderRadius: '999px', padding: '4px 16px', display: 'flex', alignItems: 'center' }}
                   >
                     {t('chatView.addModel')}
@@ -548,13 +555,15 @@ const ChatView = ({ onBack }: ChatViewProps) => {
         }}
       </SettingsViewLayout>
 
-      <AddProviderModal 
+      {/* 添加提供商弹窗 */}
+      <AddProviderModal
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
         onProviderAdded={loadProviders}
         t={t}
       />
 
+      {/* 添加 / 编辑模型弹窗 */}
       <ModelModal
         visible={modelModalVisible}
         onClose={() => { setModelModalVisible(false); setEditingModel(null); setModelModalProviderId(''); }}

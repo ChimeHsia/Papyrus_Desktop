@@ -1,7 +1,8 @@
-import { Typography, Message } from '@arco-design/web-react';
-import { useState, useEffect } from 'react';
+import { Typography } from '@arco-design/web-react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, type Card } from '../api';
+import type { Card } from '../api';
+import { useData } from '../contexts/DataContext';
 import { useCommonCardStyle, CommonCard, CardGroup, PRIMARY_COLOR } from '../components';
 import { addRecentItem } from '../utils/recentFiles';
 
@@ -145,32 +146,14 @@ const RecentScrolls = ({ height, onStudyTag }: RecentScrollsProps) => {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { cards, loading: dataLoading } = useData();
+
   useEffect(() => {
-    const fetchCards = async () => {
-      try {
-        setLoading(true);
-        const response = await api.listCards();
-        if (response.success) {
-          const cats = categorizeCards(response.cards);
-          setCollections(cats);
-        } else {
-          Message.error(t('startPage.fetchCardsFailed'));
-        }
-      } catch (err) {
-        console.error(t('startPage.fetchCardsFailed'), err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCards();
-
-    const handleCardsChanged = () => {
-      fetchCards();
-    };
-    window.addEventListener('papyrus_cards_changed', handleCardsChanged);
-    return () => window.removeEventListener('papyrus_cards_changed', handleCardsChanged);
-  }, []);
+    setLoading(dataLoading);
+    if (!dataLoading) {
+      setCollections(categorizeCards(cards));
+    }
+  }, [cards, dataLoading]);
 
   return (
     <CardGroup

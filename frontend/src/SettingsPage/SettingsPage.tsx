@@ -102,29 +102,32 @@ const CategoryCard = ({ category, onCategoryClick }: CategoryCardProps) => {
   const Icon = category.icon;
 
   return (
-    <div
-      className="settings-category-card"
-      onClick={() => onCategoryClick(category.key)}
-      role="button"
-      tabIndex={0}
-      aria-label={`${category.title}: ${category.desc}`}
-      onKeyDown={(e) => e.key === 'Enter' && onCategoryClick(category.key)}
-    >
-      <div 
-        className="settings-category-icon"
-        style={{ 
-          color: category.color,
-        }}
+    <>
+      {/* 分类卡片：图标 + 标题 + 描述 */}
+      <div
+        className="settings-category-card"
+        onClick={() => onCategoryClick(category.key)}
+        role="button"
+        tabIndex={0}
+        aria-label={`${category.title}: ${category.desc}`}
+        onKeyDown={(e) => e.key === 'Enter' && onCategoryClick(category.key)}
       >
-        <Icon className="settings-category-icon-svg" />
+        <div
+          className="settings-category-icon"
+          style={{
+            color: category.color,
+          }}
+        >
+          <Icon className="settings-category-icon-svg" />
+        </div>
+        <div className="settings-category-content">
+          <Text bold className="settings-category-title">{category.title}</Text>
+          <Paragraph type="secondary" className="settings-category-desc">
+            {category.desc}
+          </Paragraph>
+        </div>
       </div>
-      <div className="settings-category-content">
-        <Text bold className="settings-category-title">{category.title}</Text>
-        <Paragraph type="secondary" className="settings-category-desc">
-          {category.desc}
-        </Paragraph>
-      </div>
-    </div>
+    </>
   );
 };
 
@@ -141,6 +144,7 @@ interface MainViewProps {
 }
 
 const MainView = ({ title, categories, onCategoryClick }: MainViewProps) => (
+  // 设置主页：标题 + 分类卡片网格
   <div className="settings-main settings-main-scrollable">
     <Title heading={1} className="settings-page-title">{title}</Title>
     <div className="settings-categories-grid">
@@ -194,15 +198,18 @@ const SettingsPage = () => {
   };
 
   return (
+    // 设置页根容器：主页（分类卡片）与二级详情页之间的切换
     <div className="settings-page">
       {activeCategory === null && !animating && (
-        <MainView 
+        /* 未选中分类时显示主页 */
+        <MainView
           title={t('settings.title')}
           categories={SETTING_CATEGORIES}
           onCategoryClick={handleCategoryClick}
         />
       )}
       {activeCategory === null && animating && direction === 'out' && (
+        /* 退出动画中的主页 */
         <div className="settings-main settings-main-scrollable settings-page-exit">
           <Title heading={1} className="settings-page-title">{t('settings.title')}</Title>
           <div className="settings-categories-grid">
@@ -213,6 +220,7 @@ const SettingsPage = () => {
         </div>
       )}
       {activeCategory !== null && (
+        /* 选中分类后显示对应详情视图 */
         <div
           className={`settings-animation-wrapper ${direction === 'in' ? 'settings-page-enter' : 'settings-page-exit'}`}
         >

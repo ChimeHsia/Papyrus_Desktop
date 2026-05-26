@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../utils/helpers.js';
 import type { FastifyInstance } from 'fastify';
 import {
   getNoteRelations,
@@ -102,7 +103,7 @@ export default async function relationsRoutes(fastify: FastifyInstance): Promise
       );
       reply.send({ success: true, relation_id: relationId });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = toErrorMessage(err);
       if (msg.includes('UNIQUE constraint failed')) {
         reply.status(409).send({ success: false, error: '该关联已存在' });
       } else {

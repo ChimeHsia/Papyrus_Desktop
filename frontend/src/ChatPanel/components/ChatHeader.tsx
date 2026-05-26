@@ -32,6 +32,8 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   return (
     <div className="chat-panel-header">
+      {/* 聊天面板头部 */}
+      {/* 模型选择下拉 */}
       <Dropdown
         trigger="click"
         disabled={availableModels.length === 0}
@@ -57,6 +59,7 @@ export function ChatHeader({
           <IconDown className="tw-text-xs" />
         </button>
       </Dropdown>
+      {/* 头部操作按钮：新建、历史、关闭 */}
       <div className="chat-panel-header-actions">
         <Tooltip content="新建对话" mini>
           <button

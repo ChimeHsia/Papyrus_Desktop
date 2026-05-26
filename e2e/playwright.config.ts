@@ -6,10 +6,10 @@ import { rmSync } from 'node:fs';
 const TEST_DATA_DIR = join(tmpdir(), 'papyrus-e2e-test-data');
 const AUTH_TOKEN = process.env.PAPYRUS_AUTH_TOKEN || 'e2e-test-token-e2e-test-token-32chars';
 
-// Clean up any leftover test data from previous runs
+// 清理之前运行残留的测试数据
 try { rmSync(TEST_DATA_DIR, { recursive: true }); } catch {}
 
-// Forward env vars so the backend uses a temp database instead of production data
+// 传递环境变量，使后端使用临时数据库而非生产数据
 process.env.PAPYRUS_AUTH_TOKEN = AUTH_TOKEN;
 process.env.PAPYRUS_DATA_DIR = TEST_DATA_DIR;
 

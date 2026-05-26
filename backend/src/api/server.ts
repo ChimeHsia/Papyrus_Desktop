@@ -24,7 +24,7 @@ const app = Fastify({
   },
 });
 
-// Error handler — sanitize error messages in production to avoid info leakage
+// 错误处理 — 生产环境清理错误消息，避免信息泄露
 const isDebugMode = process.env.PAPYRUS_DEBUG === '1' || process.env.NODE_ENV === 'development';
 app.setErrorHandler((error: Error & { statusCode?: number }, request, reply) => {
   const errorId = randomUUID().slice(0, 8);
@@ -55,12 +55,12 @@ app.setErrorHandler((error: Error & { statusCode?: number }, request, reply) => 
   });
 });
 
-// Not found handler
+// 未找到处理程序
 app.setNotFoundHandler((_request, reply) => {
   reply.status(404).send({ success: false, error: 'Not found' });
 });
 
-// Security headers
+// 安全头部
 app.addHook('onSend', async (_request, reply) => {
   reply.header('X-Content-Type-Options', 'nosniff');
   reply.header('X-Frame-Options', 'DENY');
@@ -69,10 +69,24 @@ app.addHook('onSend', async (_request, reply) => {
 
 const PORT = process.env.PAPYRUS_PORT ? parseInt(process.env.PAPYRUS_PORT, 10) : 8000;
 
+const shouldLogReq = process.env.PAPYRUS_DEBUG === '1' || process.env.NODE_ENV === 'development';
+
 export async function initApp(): Promise<void> {
   setGlobalLogger(logger);
   const { initAIConfig } = await import('../ai/config-instance.js');
   initAIConfig();
+
+  if (shouldLogReq) {
+    let reqCounter = 0;
+    const fs = await import('node:fs');
+    const logStream = fs.createWriteStream(paths.logDir + '/api-requests.log', { flags: 'a' });
+    app.addHook('onRequest', async (request) => {
+      reqCounter++;
+      const line = `[API #${reqCounter}] ${request.method} ${request.url}\n`;
+      logStream.write(line);
+    });
+  }
+
   const allowedPorts = new Set([5173, 4173, 8000, 3000, 9100]);
   await app.register(cors, {
     origin: (origin, cb) => {
@@ -93,23 +107,23 @@ export async function initApp(): Promise<void> {
           return;
         }
       } catch {
-        // ignore invalid origins
+        // 忽略无效来源
       }
       cb(new Error('Not allowed'), false);
     },
     credentials: true,
   });
 
-  // Rate limiting — 5000 requests per minute per IP (localhost-only desktop app)
-  // Disabled in test to avoid flakiness across shared test instances
+  // 速率限制 — 每分钟每个 IP 5000 次请求（仅限 localhost 的桌面应用）
+  // 测试时禁用，避免跨共享测试实例的不稳定性
   const isTestEnv = process.env.NODE_ENV === 'test';
   await app.register(rateLimit, {
     max: isTestEnv ? Number.MAX_SAFE_INTEGER : 5000,
     timeWindow: '1 minute',
   });
 
-  // Optional lightweight auth for local API protection
-  // When PAPYRUS_AUTH_TOKEN is set (Electron mode), require it for mutating operations
+  // 轻量级可选认证，保护本地 API
+  // 当设置了 PAPYRUS_AUTH_TOKEN（Electron 模式），修改操作需要认证
   if (isAuthEnabled()) {
     app.addHook('onRequest', async (request, reply) => {
       if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS') {
@@ -126,10 +140,10 @@ export async function initApp(): Promise<void> {
     });
   }
 
-  // Health check
+  // 健康检查
   app.get('/api/health', async () => ({ status: 'ok' }));
 
-  // Register routes
+  // 注册路由
   const { default: cardsRoutes } = await import('./routes/cards.js');
   const { default: reviewRoutes } = await import('./routes/review.js');
   const { default: notesRoutes } = await import('./routes/notes.js');
@@ -210,7 +224,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export { app, logger, gracefulShutdown };
 
-// Start if run directly
+// 直接运行时启动
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   await start();
 }

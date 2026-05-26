@@ -24,6 +24,7 @@ export function StudyToolbar({
   stats,
   studied,
 }: StudyToolbarProps) {
+  // 学习工具条：退出按钮 + 进度 + 统计数据
   return (
     <div
       style={{

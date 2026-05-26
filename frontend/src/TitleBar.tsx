@@ -379,13 +379,13 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
   // 编辑菜单下拉内容
   const editMenu = (
     <Menu style={{ width: 240, maxHeight: 'none', overflow: 'visible' }}>
-      <Menu.Item key="undo" onClick={() => { try { document.execCommand('undo'); } catch { /* ignore */ } }}>
+      <Menu.Item key="undo" onClick={() => { try { document.execCommand('undo'); } catch { /* 忽略 */ } }}>
         <span className="tw-flex tw-items-center tw-w-full">
           {t('titleBar.undo')}
           <Shortcut keys={getShortcutDisplay('undo')} />
         </span>
       </Menu.Item>
-      <Menu.Item key="redo" onClick={() => { try { document.execCommand('redo'); } catch { /* ignore */ } }}>
+      <Menu.Item key="redo" onClick={() => { try { document.execCommand('redo'); } catch { /* 忽略 */ } }}>
         <span className="tw-flex tw-items-center tw-w-full">
           {t('titleBar.redo')}
           <Shortcut keys={getShortcutDisplay('redo')} />
@@ -452,12 +452,14 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
 
   return (
     <>
+      {/* 顶部标题栏 */}
       <div className={`titlebar${isMacos ? ' titlebar-macos' : ''}`}>
+        {/* 应用图标 */}
         <div className="titlebar-logo">
           <img src="./icon.png" alt="Papyrus Desktop" className="titlebar-logo-icon" />
         </div>
 
-        {/* File/Edit menus - hidden on macOS (use system menu bar instead) */}
+        {/* 文件/编辑菜单 - 在 macOS 上隐藏（使用系统菜单栏） */}
         {!isMacos && (
           <Space className="titlebar-menus no-drag" size={0}>
             <Dropdown trigger="click" droplist={fileMenu}>
@@ -469,7 +471,7 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
           </Space>
         )}
 
-        {/* center search */}
+        {/* 居中搜索 */}
         <div className="titlebar-center">
           <SearchBox 
             onResultClick={handleSearchResult}
@@ -480,7 +482,7 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
           />
         </div>
 
-        {/* window controls - hidden on macOS to preserve native traffic lights */}
+        {/* 窗口控制按钮 - 在 macOS 上隐藏以保留原生交通灯按钮 */}
         {!isMacos && (
           <div className="titlebar-controls no-drag">
             <div className="titlebar-avatar no-drag" onClick={handleOpenProfileModal}>
@@ -504,7 +506,7 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
             </button>
           </div>
         )}
-        {/* macOS: show only avatar on the right */}
+        {/* macOS：右侧仅显示头像 */}
         {isMacos && (
           <div className="titlebar-controls no-drag">
             <div className="titlebar-avatar no-drag" onClick={handleOpenProfileModal}>
@@ -523,6 +525,7 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
         okText={t('titleBar.import')}
         cancelText={t('titleBar.cancel')}
       >
+        {/* 导入格式说明与文本输入区 */}
         <div className="tw-mb-4">
           <p className="tw-mb-2 tw-text-arco-text-2">
             {t('titleBar.importFormat')}: <code>问题 === 答案</code>，{t('titleBar.onePerLine')}

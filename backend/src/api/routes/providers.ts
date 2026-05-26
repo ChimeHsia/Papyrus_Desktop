@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../utils/helpers.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
@@ -15,7 +16,6 @@ import {
 import { getDb } from '../../db/database.js';
 import type { Provider } from '../../core/types.js';
 import { aiConfig } from '../../ai/config-instance.js';
-import { syncDBToAIConfig } from '../../ai/db-sync.js';
 
 const ApiKeySchema = z.object({
   id: z.string().optional(),
@@ -83,7 +83,7 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
 
       reply.send({ success: true, provider: { ...body, id }, message: 'Provider created' });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = toErrorMessage(err);
       if (msg.includes('UNIQUE constraint failed')) {
         reply.status(409).send({ success: false, error: '相同配置的服务商已存在' });
         return;
@@ -121,7 +121,7 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
       });
       reply.send({ success: true, message: 'Provider updated' });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = toErrorMessage(err);
       if (msg.includes('UNIQUE constraint failed')) {
         reply.status(409).send({ success: false, error: '相同配置的服务商已存在' });
         return;
@@ -150,8 +150,18 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
     try {
       const { providerId } = request.params as { providerId: string };
       setDefaultProvider(providerId);
-      // 同步数据库中的默认 provider 配置到 aiConfig，强制更新
-      syncDBToAIConfig(aiConfig, true);
+      // 从数据库获取默认 provider 并同步到 aiConfig
+      const defaultProvider = loadAllProviders().find((p) => p.isDefault);
+      if (defaultProvider && defaultProvider.type) {
+        aiConfig.config.current_provider = defaultProvider.type;
+        const enabledModels = defaultProvider.models
+          .filter((m) => m.enabled)
+          .map((m) => m.modelId)
+          .filter((m): m is string => !!m);
+        if (enabledModels.length > 0) {
+          aiConfig.config.current_model = enabledModels[0]!;
+        }
+      }
       aiConfig.saveConfig();
       reply.send({ success: true, message: 'Default provider set' });
     } catch (err) {
@@ -192,7 +202,7 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
       const modelId = saveModel(providerId, body);
       reply.send({ success: true, modelId, message: 'Model added' });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = toErrorMessage(err);
       if (msg.includes('UNIQUE constraint failed')) {
         reply.status(409).send({ success: false, error: '该模型已存在于当前供应商' });
         return;
@@ -217,7 +227,7 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
       saveModel(providerId, { ...body, id: modelId });
       reply.send({ success: true, message: 'Model updated' });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = toErrorMessage(err);
       if (msg.includes('FOREIGN KEY')) {
         reply.status(400).send({ success: false, error: `更新模型失败:外键约束失败,apiKeyId 或 providerId 不存在 (${msg})` });
         return;

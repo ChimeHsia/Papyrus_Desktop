@@ -3,6 +3,7 @@ import { Input, Spin, Empty, Tag, Typography } from '@arco-design/web-react';
 import { IconSearch, IconFile, IconBook } from '@arco-design/web-react/icon';
 import { api, type SearchResult } from './api';
 import { useShortcuts } from './hooks/useShortcuts';
+import { useAccessibility } from './contexts/AccessibilityContext';
 
 interface SearchBoxProps {
   onResultClick?: (result: SearchResult) => void;
@@ -14,6 +15,8 @@ const { Text } = Typography;
 
 const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: SearchBoxProps) => {
   const { getShortcutDisplay } = useShortcuts();
+  const { settings } = useAccessibility();
+  const { noAnimation } = settings;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -221,6 +224,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
           minWidth: '360px',
           pointerEvents: isOpen ? 'auto' : 'none',
+          ...(noAnimation && !isOpen ? { display: 'none' } : {}),
         }}
       >
           <div style={{ minHeight: '200px', maxHeight: '400px', overflow: 'auto' }}>

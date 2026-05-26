@@ -29,6 +29,7 @@ export const FolderTab = ({ folder, count, isActive, onClick }: FolderTabProps) 
       flexShrink: 0,
     }}
   >
+    {/* 文件夹标签 */}
     <IconFolder style={{ 
       fontSize: '16px', 
       color: isActive ? PRIMARY_COLOR : 'var(--color-text-3)',

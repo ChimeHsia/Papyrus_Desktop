@@ -102,6 +102,7 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
 
   return (
     <div className={`tool-call-card ${config.className}`}>
+      {/* 可折叠的工具调用卡片 */}
       <Collapse
         bordered={false}
         activeKey={isExpanded ? ['1'] : []}
@@ -112,11 +113,14 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
           name="1"
           header={(
             <div className="tool-call-header">
+              {/* 工具图标与名称 */}
               <span className="tool-call-icon">{icon || config.icon}</span>
               <span className="tool-call-name">{toolLabel}</span>
+              {/* 参数预览 */}
               {paramPreview && (
                 <span className="tool-call-param-preview">{paramPreview}</span>
               )}
+              {/* 执行状态标签 */}
               <Tag
                 color={config.color}
                 size="small"
@@ -131,6 +135,7 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
                   config.label
                 )}
               </Tag>
+              {/* 待审批操作按钮 */}
               {status === 'pending' && (
                 <div className="tool-call-actions" onClick={(e) => e.stopPropagation()}>
                   <Button
@@ -163,6 +168,7 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
           className="tool-call-collapse-item"
         >
           <div className="tool-call-content">
+            {/* 参数展示区域 */}
             <div className="tool-call-section">
               <div className="tool-call-section-title">参数</div>
               <div className="tool-call-section-body">
@@ -182,6 +188,7 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
                 )}
               </div>
             </div>
+            {/* 执行结果或错误信息 */}
             {(status === 'success' || status === 'failed') && (
               <div className="tool-call-section">
                 <div className="tool-call-section-title">

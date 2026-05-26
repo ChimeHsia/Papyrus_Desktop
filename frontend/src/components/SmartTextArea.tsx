@@ -185,7 +185,7 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
           }}
         />
 
-        {/* 幽灵文本层 */}
+        {/* AI 补全建议幽灵文本 */}
         {enableCompletion && config.enabled && ghostText && !state.isLoading && (
           <GhostTextLayer
             text={ghostText}
@@ -195,7 +195,7 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
           />
         )}
 
-        {/* 加载指示器 */}
+        {/* 补全请求加载中 */}
         {state.isLoading && (
           <div
             style={{
@@ -213,7 +213,7 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
           </div>
         )}
 
-        {/* 后端不可用提示 */}
+        {/* 补全服务不可用指示 */}
         {showStatus && (
           <div
             title="补全服务不可用"

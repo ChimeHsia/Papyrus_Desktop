@@ -30,6 +30,7 @@ export const AddCard = ({ onClick }: AddCardProps) => {
         boxSizing: 'border-box' as const,
       }}
     >
+      {/* 新建卡片 */}
       <div style={{
         width: '48px',
         height: '48px',

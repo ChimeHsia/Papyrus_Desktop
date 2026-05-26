@@ -1,3 +1,4 @@
+import { toErrorMessage } from './helpers.js';
 import { execSync } from 'node:child_process';
 import { fetch as undiciFetch, ProxyAgent } from 'undici';
 
@@ -92,7 +93,7 @@ export function createProxyAgent(): ProxyAgent | undefined {
 
 export function isProxyConnectionError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  // Runtime-safe: undici wraps socket-level errors in `cause.code`
+  // 运行时安全：undici 将套接字级错误包装在 `cause.code` 中
   const causeCode = (error as unknown as { cause?: { code?: string } }).cause?.code;
   return (
     causeCode === 'ECONNREFUSED' ||
@@ -137,7 +138,7 @@ export async function fetchWithProxy(url: string, init?: RequestInit): Promise<R
     try {
       return await global.fetch(url, init);
     } catch (directError) {
-      const reason = directError instanceof Error ? directError.message : String(directError);
+      const reason = toErrorMessage(directError);
       throw new Error(`通过代理 ${proxyUrl} 连接失败，已尝试直连仍失败：${reason}`);
     }
   }

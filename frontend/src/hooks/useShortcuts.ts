@@ -69,7 +69,7 @@ const loadShortcuts = (): ShortcutConfig => {
       return { ...DEFAULT_SHORTCUTS, ...JSON.parse(saved) };
     }
   } catch {
-    // ignore
+    // 忽略
   }
   return DEFAULT_SHORTCUTS;
 };
@@ -79,7 +79,7 @@ const saveShortcuts = (shortcuts: ShortcutConfig) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts));
   } catch {
-    // ignore
+    // 忽略
   }
 };
 

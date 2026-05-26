@@ -131,6 +131,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
   };
 
   return (
+    // 关于页面：应用信息、版本检查、致谢与许可
     <div className="settings-detail about-view">
       <div className="settings-detail-header-row">
         <Button
@@ -144,6 +145,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
       </div>
       <Title heading={2} className="settings-detail-title">{t('aboutView.title')}</Title>
 
+      {/* 应用信息与操作区 */}
       <div className="settings-section about-hero">
         <img
           src="./icon.png"
@@ -158,6 +160,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
           {t('aboutView.description')}
         </Paragraph>
 
+        {/* 检查更新 / 下载更新 + GitHub 按钮 */}
         <div className="about-actions">
           {checkResult === 'update' ? (
             <Button
@@ -193,6 +196,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
           </Button>
         </div>
 
+        {/* 已是最新状态提示 */}
         {checkResult === 'latest' && (
           <div className="about-status-badge success">
             <IconCheckCircle className="about-status-icon success" />
@@ -202,6 +206,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
           </div>
         )}
 
+        {/* 检查出错状态提示 */}
         {checkResult === 'error' && (
           <div className="about-status-badge error">
             <IconExclamationCircle className="about-status-icon error" />
@@ -212,6 +217,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
         )}
       </div>
 
+      {/* 新版本信息卡片 */}
       {checkResult === 'update' && versionInfo?.has_update && (
         <div
           className="settings-section about-update-card"
@@ -241,6 +247,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
         </div>
       )}
 
+      {/* 致谢与许可信息 */}
       <div className="settings-section">
         <Title heading={4} className="settings-section-title">{t('aboutView.acknowledgements')}</Title>
         <Paragraph type="secondary" className="about-paragraph">
@@ -253,6 +260,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
         </div>
       </div>
 
+      {/* 开源许可信息 */}
       <div className="settings-section">
         <Title heading={4} className="settings-section-title">{t('aboutView.license')}</Title>
         <Paragraph type="secondary" className="about-paragraph">
@@ -260,6 +268,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
         </Paragraph>
       </div>
 
+      {/* 鼓励 Star 的小提示 */}
       <div className="settings-tip about-tip">
         <IconHeart className="about-tip-icon" />
         <Text type="secondary" className="about-tip-text">

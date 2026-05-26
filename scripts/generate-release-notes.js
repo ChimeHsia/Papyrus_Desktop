@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Generate release notes comparing current branch against main
+ * 生成当前分支与 main 分支比较的发布说明
  *
- * Usage:
- *   node scripts/generate-release-notes.js          # compares main..HEAD
- *   node scripts/generate-release-notes.js v1.0.0   # compares v1.0.0..HEAD
- *   node scripts/generate-release-notes.js v1.0.0 v2.0.0  # compares v1.0.0..v2.0.0
+ * 用法：
+ *   node scripts/generate-release-notes.js          # 比较 main..HEAD
+ *   node scripts/generate-release-notes.js v1.0.0   # 比较 v1.0.0..HEAD
+ *   node scripts/generate-release-notes.js v1.0.0 v2.0.0  # 比较 v1.0.0..v2.0.0
  */
 
 const { execSync } = require('child_process');
@@ -100,7 +100,7 @@ function formatDate(date = new Date()) {
 function getRepoUrl() {
   try {
     const remote = exec('git remote get-url origin').trim();
-    // Convert SSH or HTTPS URL to HTTPS web URL
+    // 将 SSH 或 HTTPS URL 转换为 HTTPS 网页 URL
     const match = remote.match(/github\.com[:/](.+?)\.git?$/);
     if (match) return `https://github.com/${match[1]}`;
   } catch {
@@ -124,12 +124,12 @@ function generateNotes(fromRef, toRef) {
   md += `**Date**: ${date}  \n`;
   md += `**Compare**: ${fromRef}...${toRef}\n\n`;
 
-  // Summary
+  // 摘要
   md += `## Summary\n\n`;
   md += `- **Commits**: ${commits.length}\n`;
   md += `- **Files changed**: ${changedFiles.length}\n\n`;
 
-  // Categorized commits
+  // 分类提交
   for (const key of Object.keys(categories)) {
     const cat = categories[key];
     if (cat.commits.length === 0) continue;
@@ -140,13 +140,13 @@ function generateNotes(fromRef, toRef) {
     md += '\n';
   }
 
-  // Diff stat
+  // Diff 统计
   if (diffStat) {
     md += `## Diff Stat\n\n`;
     md += '```\n' + diffStat + '\n```\n\n';
   }
 
-  // Changed files by area
+  // 按区域分类的变更文件
   const frontendFiles = changedFiles.filter(f => f.startsWith('frontend/'));
   const backendFiles = changedFiles.filter(f => f.startsWith('backend/'));
   const electronFiles = changedFiles.filter(f => f.startsWith('electron/'));
@@ -163,7 +163,7 @@ function generateNotes(fromRef, toRef) {
     md += '\n';
   }
 
-  // Contributors
+  // 贡献者
   const contributors = [...new Set(commits.map(c => c.author))];
   if (contributors.length) {
     md += `## Contributors\n\n`;
@@ -176,7 +176,7 @@ function generateNotes(fromRef, toRef) {
   return md.trim();
 }
 
-// Main
+// 主函数
 function main() {
   const args = process.argv.slice(2);
   let fromRef, toRef;
@@ -188,12 +188,12 @@ function main() {
     fromRef = args[0];
     toRef = 'HEAD';
   } else {
-    // Default: compare main..HEAD
+    // 默认：比较 main..HEAD
     fromRef = 'main';
     toRef = 'HEAD';
   }
 
-  // Verify refs exist
+  // 验证引用是否存在
   try {
     exec(`git rev-parse --verify ${fromRef}`);
     exec(`git rev-parse --verify ${toRef}`);
@@ -205,11 +205,11 @@ function main() {
 
   const notes = generateNotes(fromRef, toRef);
 
-  // Write to file
+  // 写入文件
   const outputPath = path.join(process.cwd(), 'RELEASE_NOTES.md');
   fs.writeFileSync(outputPath, notes + '\n');
 
-  // Also output to stdout for CI
+  // 同时输出到 stdout 供 CI 使用
   console.log(notes);
 
   console.error(`\nRelease notes written to: ${outputPath}`);

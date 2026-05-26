@@ -39,6 +39,7 @@ export function MessageList({
   if (messages.length === 0) {
     return (
       <div className="tw-flex-1 tw-flex tw-flex-col tw-items-center tw-justify-center tw-p-8">
+        {/* 空状态提示 */}
         <Empty description="开始新的对话" />
       </div>
     );
@@ -46,6 +47,7 @@ export function MessageList({
 
   return (
     <div className="chat-messages">
+      {/* 消息气泡列表 */}
       {messages.map((msg) => (
         <div key={msg.id} className={`chat-message chat-message-${msg.role}`}>
           <MessageBubble

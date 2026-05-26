@@ -1,6 +1,6 @@
 /**
- * Verify that backend dependencies are correctly packaged in the Electron app.
- * Checks both app.asar.unpacked and app.asar contents.
+ * 验证后端依赖是否正确打包到 Electron 应用中。
+ * 同时检查 app.asar.unpacked 和 app.asar 的内容。
  */
 
 const fs = require('fs');
@@ -9,7 +9,7 @@ const asar = require('@electron/asar');
 
 const DIST_ELECTRON = path.resolve(__dirname, '..', 'dist-electron');
 
-// Files we expect to find in the packaged app
+// 期望在打包应用中找到的文件
 const REQUIRED_FILES = [
   'backend/node_modules/fastify/package.json',
   'backend/dist/api/server.js',

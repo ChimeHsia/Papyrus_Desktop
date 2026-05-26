@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../utils/helpers.js';
 import type { FastifyInstance } from 'fastify';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -110,7 +111,7 @@ export default async function dataRoutes(fastify: FastifyInstance): Promise<void
         }
       });
     } catch (e) {
-      reply.status(400).send({ success: false, error: e instanceof Error ? e.message : String(e) });
+      reply.status(400).send({ success: false, error: toErrorMessage(e) });
       return;
     }
 

@@ -24,6 +24,7 @@ const FileIcon = ({ type, size = 40 }: FileIconProps) => {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
+          {/* 文件夹 */}
           <IconFolder style={{ ...iconStyle, color: '#fff' }} />
         </div>
       );
@@ -38,6 +39,7 @@ const FileIcon = ({ type, size = 40 }: FileIconProps) => {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
+          {/* 图片 */}
           <IconImage style={iconStyle} />
         </div>
       );
@@ -52,6 +54,7 @@ const FileIcon = ({ type, size = 40 }: FileIconProps) => {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
+          {/* 视频 */}
           <IconFileVideo style={iconStyle} />
         </div>
       );
@@ -66,6 +69,7 @@ const FileIcon = ({ type, size = 40 }: FileIconProps) => {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
+          {/* 音频 */}
           <IconMusic style={iconStyle} />
         </div>
       );
@@ -82,6 +86,7 @@ const FileIcon = ({ type, size = 40 }: FileIconProps) => {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
+          {/* 其他 */}
           <IconFile style={{ ...iconStyle, color: 'var(--color-text-2)' }} />
         </div>
       );

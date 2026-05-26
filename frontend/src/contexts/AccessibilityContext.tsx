@@ -165,22 +165,20 @@ const applySettingsToDOM = (settings: AccessibilitySettings): void => {
     styleEl.textContent = `
       html.aaa-no-animation, html.aaa-no-animation *,
       html.aaa-no-animation *::before, html.aaa-no-animation *::after {
-        animation: none !important;
-        transition: none !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
         scroll-behavior: auto !important;
       }
       html.aaa-no-animation .arco-modal-zoom,
-      html.aaa-no-animation .arco-menu-collapse,
+      html.aaa-no-animation .arco-menu-collapse {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
       html.aaa-no-animation .arco-message-wrapper,
       html.aaa-no-animation .arco-notification-wrapper {
-        animation: none !important;
-        transition: none !important;
-      }
-      html.aaa-no-animation .tw-animate-page-up,
-      html.aaa-no-animation .tw-animate-page-down,
-      html.aaa-no-animation .tw-animate-page-exit-up,
-      html.aaa-no-animation .tw-animate-page-exit-down {
-        animation: none !important;
+        animation-duration: 0.1ms !important;
       }
     `;
   } else {
@@ -260,7 +258,7 @@ export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ ch
 };
 
 // ============================================
-// Hook
+// 钩子
 // ============================================
 
 export const useAccessibility = (): AccessibilityContextType => {

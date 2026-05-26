@@ -101,6 +101,7 @@ const ToolView = ({ onBack }: ToolViewProps) => {
 
     return (
       <>
+        {/* 工具执行模式：自动 / 手动 */}
         <SettingItem title={t('toolView.approvalMode')} desc={t('toolView.approvalModeDesc')}>
           <Tag color={toolsMode === 'auto' ? 'green' : 'orangered'}>
             {toolsMode === 'auto' ? t('toolView.auto') : t('toolView.manual')}
@@ -115,6 +116,7 @@ const ToolView = ({ onBack }: ToolViewProps) => {
           </Button>
         </SettingItem>
 
+        {/* 自动执行白名单 */}
         <Divider style={{ margin: '8px 0' }} />
         <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 12 }}>
           {t('toolView.whitelist')}
@@ -158,6 +160,7 @@ const ToolView = ({ onBack }: ToolViewProps) => {
           </div>
         ))}
 
+        {/* 保存 / 重置配置按钮 */}
         <Divider style={{ margin: '12px 0' }} />
         <Space>
           <Button
@@ -181,6 +184,7 @@ const ToolView = ({ onBack }: ToolViewProps) => {
   };
 
   return (
+    // 工具设置主布局
     <SettingsViewLayout
       title={t('toolView.title')}
       description={t('toolView.titleDesc')}

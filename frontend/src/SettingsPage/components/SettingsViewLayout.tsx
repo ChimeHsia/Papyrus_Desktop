@@ -43,6 +43,7 @@ export const SettingsViewLayout = ({
   const { contentRef, activeSection, scrollToSection } = useScrollNavigation(navItems);
 
   return (
+    // 设置详情页布局：左侧导航 + 右侧内容区
     <div style={{
       flex: 1,
       display: 'flex',
@@ -60,6 +61,7 @@ export const SettingsViewLayout = ({
         flexDirection: 'column',
         flexShrink: 0,
       }}>
+        {/* 返回按钮 + 标题 */}
         <div style={{
           padding: 16,
           borderBottom: '1px solid var(--color-border-2)',
@@ -76,6 +78,7 @@ export const SettingsViewLayout = ({
           <Text style={{ fontSize: '14px', fontWeight: 500 }}>{title}</Text>
         </div>
 
+        {/* 导航项目列表 */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
           {navItems.map((item) => {
             const ItemIcon = item.icon;
@@ -122,6 +125,7 @@ export const SettingsViewLayout = ({
           padding: '32px 48px',
         }}
       >
+        {/* 页面标题区 */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <Icon style={{ fontSize: 32, color: iconColor }} />
@@ -136,6 +140,7 @@ export const SettingsViewLayout = ({
           )}
         </div>
 
+        {/* 各分区内容 */}
         {sections.map((section, index) => (
           <section
             key={section.id}

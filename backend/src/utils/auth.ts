@@ -1,3 +1,4 @@
+import { toErrorMessage } from './helpers.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -15,7 +16,7 @@ function readTokenFile(): string | null {
       return fs.readFileSync(TOKEN_FILE, 'utf8').trim();
     }
   } catch (e) {
-    console.error(`读取认证令牌文件失败: ${e instanceof Error ? e.message : String(e)}`);
+    console.error(`读取认证令牌文件失败: ${toErrorMessage(e)}`);
   }
   return null;
 }
@@ -25,10 +26,10 @@ function writeTokenFile(token: string): void {
     fs.mkdirSync(paths.dataDir, { recursive: true });
     fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600 });
     if (process.platform === 'win32') {
-      try { fs.chmodSync(TOKEN_FILE, 0o600); } catch { /* Windows may not fully support chmod */ }
+      try { fs.chmodSync(TOKEN_FILE, 0o600); } catch { /* Windows 可能不完全支持 chmod */ }
     }
   } catch (e) {
-    console.error(`写入认证令牌文件失败: ${e instanceof Error ? e.message : String(e)}`);
+    console.error(`写入认证令牌文件失败: ${toErrorMessage(e)}`);
   }
 }
 

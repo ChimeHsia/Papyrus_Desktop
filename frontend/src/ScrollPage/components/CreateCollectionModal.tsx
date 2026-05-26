@@ -35,6 +35,7 @@ const CreateCollectionModal = ({
     onCardIdsChange([]);
   };
 
+  // 创建收藏集弹窗：输入名称并选择卡片
   return (
     <Modal
       title={t('scrollPage.createCollection')}

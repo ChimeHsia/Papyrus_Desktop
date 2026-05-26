@@ -82,7 +82,7 @@ const loadSettings = () => {
       return { pageSceneries };
     }
   } catch {
-    // ignore
+    // 忽略
   }
   return {
     pageSceneries: defaultPageSceneries,
@@ -94,7 +94,7 @@ const saveSettings = (pageSceneries: Record<PageType, PageSceneryConfig>) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ pageSceneries }));
   } catch {
-    // ignore
+    // 忽略
   }
 };
 
@@ -106,7 +106,7 @@ export const loadStartPageScenery = (): StartPageSceneryConfig => {
       return { ...defaultStartPageScenery, ...JSON.parse(saved) };
     }
   } catch {
-    // ignore
+    // 忽略
   }
   return defaultStartPageScenery;
 };
@@ -116,7 +116,7 @@ export const saveStartPageScenery = (config: StartPageSceneryConfig) => {
   try {
     localStorage.setItem(START_PAGE_SCENERY_KEY, JSON.stringify(config));
   } catch {
-    // ignore
+    // 忽略
   }
 };
 
@@ -134,7 +134,7 @@ const loadCustomSceneries = (): SceneryItem[] => {
       return JSON.parse(saved);
     }
   } catch {
-    // ignore
+    // 忽略
   }
   return [];
 };
@@ -144,7 +144,7 @@ const saveCustomSceneries = (sceneries: SceneryItem[]) => {
   try {
     localStorage.setItem(CUSTOM_SCENERIES_KEY, JSON.stringify(sceneries));
   } catch {
-    // ignore
+    // 忽略
   }
 };
 

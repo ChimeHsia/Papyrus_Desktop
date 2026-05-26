@@ -12,17 +12,13 @@ import {
   getNoteById,
   getCardById,
 } from '../db/database.js';
+import { computeHash } from '../utils/helpers.js';
 import type { Note, CardRecord } from './types.js';
 import type { PapyrusLogger } from '../utils/logger.js';
 
 function computeCardContentHash(card: CardRecord): string {
   const raw = `${card.q}|${card.a}|${card.tags.join(',')}`;
-  let hash = 0;
-  for (let i = 0; i < raw.length; i++) {
-    const char = raw.charCodeAt(i);
-    hash = ((hash << 5) - hash + char) | 0;
-  }
-  return Math.abs(hash).toString(16).slice(0, 8);
+  return computeHash(raw);
 }
 
 export function saveNoteVersion(note: Note, logger?: PapyrusLogger): void {

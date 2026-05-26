@@ -7,6 +7,7 @@ import { SECONDARY_COLOR, PRIMARY_COLOR } from '../constants';
 const AddCard = ({ label, onClick }: AddCardProps) => {
   const [hovered, setHovered] = useState(false);
 
+  // 添加卡片按钮：点击创建新卡片
   return (
     <div
       role="button"

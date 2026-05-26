@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../utils/helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,7 +22,7 @@ function sanitizeFilename(name: string): string {
 export function listFiles(logger?: PapyrusLogger): FileRecord[] {
   const files = loadAllFiles(logger);
 
-  // Count children for folders (itemCount)
+  // 统计文件夹的子项数量 (itemCount)
   const childCounts = new Map<string, number>();
   for (const f of files) {
     if (f.parent_id) {
@@ -132,7 +133,7 @@ export function saveFile(
   const safeName = sanitizeFilename(name);
   const storageName = `${id}_${safeName}`;
 
-  // Ensure vault directory exists
+  // 确保 vault 目录存在
   const vaultDir = paths.vaultDir;
   fs.mkdirSync(vaultDir, { recursive: true });
 
@@ -153,7 +154,7 @@ export function saveFile(
   };
 
   try {
-    // Decode and write file content first
+    // 先解码并写入文件内容
     const buffer = Buffer.from(base64Content, 'base64');
     if (!validateFileContent(buffer, ext)) {
       throw new Error(`文件内容与实际扩展名 ${ext} 不匹配，可能为伪造文件`);
@@ -161,7 +162,7 @@ export function saveFile(
     const storagePath = path.join(vaultDir, storageName);
     fs.writeFileSync(storagePath, buffer);
 
-    // Then write database record with complete data
+    // 然后写入包含完整数据的数据库记录
     record.file_storage_path = storagePath;
     record.size = buffer.length;
     insertFile(record, logger);
@@ -173,7 +174,7 @@ export function saveFile(
     try {
       deleteFileById(id, logger);
     } catch (cleanupErr) {
-      logger?.error(`清理失败的数据库记录时出错: ${id} - ${cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)}`);
+      logger?.error(`清理失败的数据库记录时出错: ${id} - ${toErrorMessage(cleanupErr)}`);
     }
     throw err;
   }
@@ -188,7 +189,7 @@ export function deleteFileItem(
 
   let count = 0;
 
-  // If folder, recursively delete children first
+  // 如果是文件夹，先递归删除子项
   if (file.is_folder) {
     const children = getFilesByParentId(fileId);
     for (const child of children) {
@@ -197,7 +198,7 @@ export function deleteFileItem(
     }
   }
 
-  // Delete the file from disk if it has a storage path
+  // 如果有存储路径，从磁盘删除文件
   if (file.file_storage_path && fs.existsSync(file.file_storage_path)) {
     fs.unlinkSync(file.file_storage_path);
     logger?.info(`删除磁盘文件: ${file.file_storage_path}`);

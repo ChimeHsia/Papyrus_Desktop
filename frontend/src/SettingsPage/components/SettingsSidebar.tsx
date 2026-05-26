@@ -201,7 +201,7 @@ export const SettingsSection = ({ id, title, children }: SettingsSectionProps) =
   );
 };
 
-// Hook for scroll spy
+// 滚动监听 Hook
 export const useScrollSpy = (
   sectionIds: string[],
   options?: { offset?: number; onChange?: (activeId: string) => void }

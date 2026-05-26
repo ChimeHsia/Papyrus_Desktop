@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../utils/helpers.js';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,7 +34,7 @@ function getOrCreateMasterKey(): Buffer | null {
 
     if (process.platform === 'win32') {
       fs.writeFileSync(keyPath, key);
-      try { fs.chmodSync(keyPath, 0o400); } catch { /* Windows may not fully support chmod */ }
+      try { fs.chmodSync(keyPath, 0o400); } catch { /* Windows 可能不完全支持 chmod */ }
     } else {
       try {
         fs.writeFileSync(keyPath, key, { mode: 0o400 });
@@ -60,7 +61,7 @@ function getOrCreateSalt(): Buffer {
 
     if (process.platform === 'win32') {
       fs.writeFileSync(saltPath, salt);
-      try { fs.chmodSync(saltPath, 0o600); } catch { /* Windows may not fully support chmod */ }
+      try { fs.chmodSync(saltPath, 0o600); } catch { /* Windows 可能不完全支持 chmod */ }
     } else {
       try {
         fs.writeFileSync(saltPath, salt, { mode: 0o600 });
@@ -71,7 +72,7 @@ function getOrCreateSalt(): Buffer {
 
     return salt;
   } catch (e) {
-    throw new Error(`无法创建或读取 salt 文件: ${e instanceof Error ? e.message : String(e)}`);
+    throw new Error(`无法创建或读取 salt 文件: ${toErrorMessage(e)}`);
   }
 }
 
@@ -135,7 +136,7 @@ export function decryptApiKey(encryptedKey: string): string {
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
     return decrypted.toString('utf8');
   } catch (err) {
-    console.error('[CRYPTO] API key decryption failed:', err instanceof Error ? err.message : String(err));
+    console.error('[CRYPTO] API key decryption failed:', toErrorMessage(err));
     return '';
   }
 }

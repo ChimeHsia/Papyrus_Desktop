@@ -76,8 +76,6 @@ describe('Chat Sessions Legacy Migration', () => {
     const config = new AIConfig(testDir);
     config.config.current_provider = 'ollama';
     config.config.current_model = 'llama2';
-    config.config.providers.ollama = { api_key: '', base_url: 'http://localhost:11434', models: ['llama2'] };
-    (config.config.features as Record<string, unknown>).cache_enabled = false;
     return config;
   }
 

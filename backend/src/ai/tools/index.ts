@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../utils/helpers.js';
 import type { PapyrusLogger } from '../../utils/logger.js';
 import { TOOL_REGISTRY, TOOL_LIST, PROMPT_HINTS } from './registry.js';
 import { AIResponseParser } from './parser.js';
@@ -84,10 +85,10 @@ ${sections.join('\n\n')}
       const elapsed = (Date.now() - start) / 1000;
       this.logEvent(
         'tool.execute_error',
-        { tool: toolName, elapsed_s: elapsed, error: exc instanceof Error ? exc.message : String(exc) },
+        { tool: toolName, elapsed_s: elapsed, error: toErrorMessage(exc) },
         'ERROR',
       );
-      return { success: false, error: exc instanceof Error ? exc.message : String(exc) };
+      return { success: false, error: toErrorMessage(exc) };
     }
   }
 

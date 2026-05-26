@@ -36,6 +36,7 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
       case 'aa-section':
         return (
           <>
+            {/* AA 级无障碍设置：焦点指示器、屏幕阅读器、大光标 */}
             <Paragraph type="secondary" style={{ marginBottom: 16, fontSize: 13 }}>
               {t('accessibilityView.aaLevelDesc')}
             </Paragraph>
@@ -81,6 +82,7 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
       case 'aaa-section':
         return (
           <>
+            {/* AAA 级无障碍设置：高对比度、阅读增强、区域导航 */}
             <Paragraph type="secondary" style={{ marginBottom: 16, fontSize: 13 }}>
               {t('accessibilityView.aaaLevelDesc')}
             </Paragraph>
@@ -126,6 +128,7 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
       case 'motion-section':
         return (
           <>
+            {/* 动画与动效设置 */}
             <SettingItem
               title={t('accessibilityView.noAnimation')}
               desc={t('accessibilityView.noAnimationDesc')}
@@ -189,6 +192,7 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
 
   return (
     <>
+      {/* 无障碍设置主布局 */}
       <SettingsViewLayout
         title={t('accessibilityView.title')}
         description={t('accessibilityView.titleDesc')}
@@ -207,6 +211,7 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
         {renderSection}
       </SettingsViewLayout>
 
+      {/* 底部操作栏：恢复默认设置 */}
       <div style={{
         display: 'flex',
         gap: 12,

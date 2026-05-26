@@ -16,6 +16,7 @@ interface KeyboardShortcutsProps {
   lastResult: LastResult | null;
 }
 
+// 键盘快捷键提示：显示所有可用快捷键列表
 export function KeyboardShortcuts({ lastResult }: KeyboardShortcutsProps) {
   return (
     <div

@@ -58,7 +58,7 @@ export default async function logsRoutes(fastify: FastifyInstance): Promise<void
       globalLogger?.setLogRotation(body.log_rotation);
     }
 
-    // Persist to ai_config.json
+    // 持久化到 ai_config.json
     const currentConfig = globalLogger?.getConfig();
     if (currentConfig) {
       aiConfig.setLogConfig(currentConfig);

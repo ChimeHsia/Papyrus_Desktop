@@ -54,7 +54,7 @@ interface UseWebSocketReturn {
 }
 
 /**
- * WebSocket Hook - 实时接收后端文件变更通知
+ * WebSocket 钩子——实时接收后端文件变更通知
  */
 export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
   const {

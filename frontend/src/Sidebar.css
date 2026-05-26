@@ -49,7 +49,9 @@
   justify-content: flex-start;
 }
 
-/* 图标容器 - 始终固定距离按钮左侧7px */
+/* 图标容器 - 使用绝对定位固定图标位置，避免折叠动画时 flexbox 重新计算导致偏移
+   left: 6px 兼顾数学居中（32px 按钮含 2px border, padding 边缘在 2px 处,
+   (32 - 18) / 2 - 2 = 5 为纯数学居中）与图标 SVG 自身视觉重心 */
 .sidebar-icon {
   display: inline-flex;
   align-items: center;
@@ -59,7 +61,7 @@
   flex-shrink: 0;
   transition: none;
   position: absolute;
-  left: 7px;
+  left: 6px;
 }
 
 /* 标签文字 - 收起时隐藏 */
@@ -80,7 +82,7 @@
   pointer-events: auto;
 }
 
-/* Focus visible for keyboard navigation */
+/* 键盘导航时显示焦点轮廓 */
 .sidebar-item:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

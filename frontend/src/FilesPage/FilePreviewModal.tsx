@@ -122,6 +122,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
     if (!isPreviewable(file)) {
       return (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
+          {/* 不支持预览 */}
           <div style={{ fontSize: '16px', color: 'var(--color-text-2)', marginBottom: '16px' }}>
             该文件类型暂不支持预览
           </div>
@@ -142,6 +143,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
 
     const renderMediaError = () => (
       <div style={{ textAlign: 'center', padding: '48px 0' }}>
+        {/* 加载失败 */}
         <div style={{ fontSize: '16px', color: 'var(--color-text-2)', marginBottom: '16px' }}>
           {mediaErrorType}加载失败
         </div>
@@ -156,6 +158,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
         if (mediaError) return renderMediaError();
         return (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', maxHeight: '70vh', overflow: 'auto' }}>
+            {/* 图片 */}
             {imageLoading && (
               <div style={{ position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Spin size={32} />
@@ -184,6 +187,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
         if (mediaError) return renderMediaError();
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
+            {/* 视频 */}
             <video
               src={previewUrl}
               controls
@@ -198,6 +202,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
         if (mediaError) return renderMediaError();
         return (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
+            {/* 音频 */}
             <audio
               src={previewUrl}
               controls
@@ -224,6 +229,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
           }
           return (
             <div style={{ height: '70vh' }}>
+              {/* PDF */}
               <iframe
                 src={previewUrl}
                 title={file.name}
@@ -276,6 +282,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
                 wordBreak: 'break-word',
               }}
             >
+              {/* 文本 */}
               {textContent}
             </pre>
           );
@@ -345,6 +352,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
       focusLock
       style={{ width: 'auto', maxWidth: '90vw' }}
     >
+      {/* 预览弹窗 */}
       {file && renderPreview()}
     </Modal>
   );

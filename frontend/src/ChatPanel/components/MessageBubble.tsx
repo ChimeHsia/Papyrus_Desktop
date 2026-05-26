@@ -1,9 +1,10 @@
-import { Avatar, Button } from '@arco-design/web-react';
+import { Avatar } from '@arco-design/web-react';
 import type { Message, MessageBlock, UserProfile } from '../types';
 import { MarkdownView } from '../../components/MarkdownView';
 import { ReasoningChain } from '../../components/ReasoningChain';
 import { ToolCallCard } from '../../components/ToolCallCard';
 import { MessageActions } from './MessageActions';
+import { EditTextarea } from './EditTextarea';
 
 export interface MessageBubbleProps {
   message: Message;
@@ -92,34 +93,19 @@ export function MessageBubble({
           )}
         </Avatar>
         {editingMessageId === message.id ? (
-          <div className="chat-message-bubble chat-edit-bubble">
-            <textarea
-              className="chat-textarea chat-edit-textarea-user"
-              value={editingDraft}
-              onChange={(e) => onEditingDraftChange(e.target.value)}
-              autoFocus
-              rows={3}
-              aria-label="编辑消息"
-            />
-            <div className="chat-edit-actions">
-              <Button size="mini" onClick={() => onEditingMessageIdChange(null)}>
-                取消
-              </Button>
-              <Button
-                size="mini"
-                type="primary"
-                onClick={() => {
-                  const msgIndex = messages.findIndex((m) => m.id === message.id);
-                  onMessagesChange((prev) => prev.slice(0, msgIndex));
-                  onTextOverride(editingDraft);
-                  onEditingMessageIdChange(null);
-                  onSendMessage();
-                }}
-              >
-                保存
-              </Button>
-            </div>
-          </div>
+          <EditTextarea
+            value={editingDraft}
+            onChange={onEditingDraftChange}
+            onCancel={() => onEditingMessageIdChange(null)}
+            textareaClass="chat-edit-textarea-user"
+            onSave={() => {
+              const msgIndex = messages.findIndex((m) => m.id === message.id);
+              onMessagesChange((prev) => prev.slice(0, msgIndex));
+              onTextOverride(editingDraft);
+              onEditingMessageIdChange(null);
+              onSendMessage();
+            }}
+          />
         ) : (
           <div className="chat-message-bubble">
             <MarkdownView source={message.content} compact />
@@ -155,37 +141,23 @@ export function MessageBubble({
         )}
       </div>
       {editingMessageId === message.id ? (
-        <div className="chat-message-bubble chat-edit-bubble">
-          <textarea
-            className="chat-textarea chat-edit-textarea-assistant"
-            value={editingDraft}
-            onChange={(e) => onEditingDraftChange(e.target.value)}
-            autoFocus
-            rows={5}
-            aria-label="编辑消息"
-          />
-          <div className="chat-edit-actions">
-            <Button size="mini" onClick={() => onEditingMessageIdChange(null)}>
-              取消
-            </Button>
-            <Button
-              size="mini"
-              type="primary"
-              onClick={() => {
-                onMessagesChange((prev) =>
-                  prev.map((m) =>
-                    m.id === message.id ? { ...m, content: editingDraft } : m,
-                  ),
-                );
-                onEditingMessageIdChange(null);
-              }}
-            >
-              保存
-            </Button>
-          </div>
-        </div>
+        <EditTextarea
+          value={editingDraft}
+          onChange={onEditingDraftChange}
+          onCancel={() => onEditingMessageIdChange(null)}
+          rows={5}
+          textareaClass="chat-edit-textarea-assistant"
+          onSave={() => {
+            onMessagesChange((prev) =>
+              prev.map((m) =>
+                m.id === message.id ? { ...m, content: editingDraft } : m,
+              ),
+            );
+            onEditingMessageIdChange(null);
+          }}
+        />
       ) : (
-        message.content && (
+        message.content != null && (
           <div className="chat-message-bubble">
             <MarkdownView source={message.content} compact />
           </div>

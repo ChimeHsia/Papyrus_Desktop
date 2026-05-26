@@ -1,74 +1,74 @@
 /**
- * TypeScript type definitions for Electron API
+ * Electron API 的 TypeScript 类型定义
  * 
- * This file provides type definitions for the electronAPI object
- * exposed by the preload script.
+ * 此文件提供 electronAPI 对象的类型定义
+ * 由 preload 脚本暴露。
  */
 
 export interface ElectronAPI {
-  /** Get the application version */
+  /** 获取应用版本 */
   getVersion(): Promise<string>;
   
-  /** Get the current platform (win32, darwin, linux) */
+  /** 获取当前平台 (win32, darwin, linux) */
   getPlatform(): Promise<string>;
   
-  /** Check if running in development mode */
+  /** 检查是否在开发模式下运行 */
   isDev(): Promise<boolean>;
   
-  /** Open an external URL in the default browser */
+  /** 在默认浏览器中打开外部 URL */
   openExternal(url: string): Promise<void>;
   
-  /** Open the application's data folder */
+  /** 打开应用数据文件夹 */
   openDataFolder(): Promise<void>;
 
-  /** Open any folder in the system file explorer */
+  /** 在系统文件管理器中打开任意文件夹 */
   openFolder(folderPath: string): Promise<void>;
 
-  /** Minimize the window to the system tray */
+  /** 最小化到系统托盘 */
   minimizeToTray(): Promise<void>;
   
-  /** Minimize the window */
+  /** 最小化窗口 */
   minimizeWindow(): Promise<void>;
   
-  /** Maximize/unmaximize the window */
+  /** 最大化/还原窗口 */
   maximizeWindow(): Promise<void>;
   
-  /** Close the window */
+  /** 关闭窗口 */
   closeWindow(): Promise<void>;
 
-  /** Quit the entire application */
+  /** 退出整个应用 */
   quitApp(): Promise<void>;
 
-  /** Get the backend auth token */
+  /** 获取后端认证令牌 */
   getAuthToken(): Promise<string | null>;
 
-  /** Check if window is maximized */
+  /** 检查窗口是否最大化 */
   isMaximized(): Promise<boolean>;
   
-  /** Check if the backend is healthy */
+  /** 检查后端是否健康 */
   checkBackendHealth(): Promise<boolean>;
   
-  /** Restart the backend process */
+  /** 重启后端进程 */
   restartBackend(): Promise<boolean>;
   
-  /** Select a folder using the native dialog */
+  /** 使用原生对话框选择文件夹 */
   selectFolder(defaultPath?: string): Promise<{ canceled: boolean; filePaths: string[] }>;
 }
 
 export interface ElectronEnv {
-  /** Current Node environment */
+  /** 当前 Node 环境 */
   NODE_ENV: string;
   
-  /** Current platform */
+  /** 当前平台 */
   PLATFORM: string;
 }
 
 declare global {
   interface Window {
-    /** Electron API for main process communication */
+    /** 用于主进程通信的 Electron API */
     electronAPI: ElectronAPI;
     
-    /** Environment information */
+    /** 环境信息 */
     electronEnv: ElectronEnv;
   }
 }

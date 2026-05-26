@@ -1,6 +1,6 @@
 /**
- * Diagnostic window for debugging startup issues
- * Shows paths, logs, and error information
+ * 诊断窗口，用于调试启动问题
+ * 显示路径、日志和错误信息
  */
 
 const { BrowserWindow } = require('electron');
@@ -15,7 +15,7 @@ function createDiagnosticWindow(logs, paths, error) {
     return diagnosticWindow;
   }
 
-  // Generate path table rows
+  // 生成路径表格行
   const pathRows = Object.entries(paths).map(([key, value]) => {
     const exists = fs.existsSync(value);
     const existsClass = exists ? 'exists-yes' : 'exists-no';
@@ -31,7 +31,7 @@ function createDiagnosticWindow(logs, paths, error) {
     `;
   }).join('');
 
-  // Generate log entries
+  // 生成日志条目
   const logEntries = logs.map(log => {
     const levelClass = log.level === 'error' ? 'log-error' : 'log-info';
     return `<div class="log-entry ${levelClass}">[${escapeHtml(log.timestamp)}] ${escapeHtml(log.message)}</div>`;
@@ -42,7 +42,7 @@ function createDiagnosticWindow(logs, paths, error) {
     height: 700,
     title: 'Papyrus Desktop Diagnostic',
     webPreferences: {
-      // SECURITY: disable nodeIntegration and enable contextIsolation
+      // 安全：禁用 nodeIntegration 并启用 contextIsolation
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'diagnostic-preload.js'),

@@ -1,7 +1,8 @@
 import { Typography, Card, Progress, Tooltip, Spin, Empty } from '@arco-design/web-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { IconFire, IconClockCircle, IconCheckCircle, IconCalendar } from '@arco-design/web-react/icon';
-import { api, type Card as CardType } from '../api';
+import type { Card as CardType } from '../api';
+import { useData } from '../contexts/DataContext';
 import { useCommonCardStyle, CommonCard, PageLayout } from '../components';
 import { PRIMARY_COLOR, SUCCESS_COLOR } from '../theme-constants';
 import { getAdaptivePrimaryColor } from '../hooks/useSceneryColor';
@@ -389,66 +390,33 @@ const Heatmap = ({ data }: { data: HeatmapItem[] }) => {
 
 
 const ChartsPage = () => {
-  const [cards, setCards] = useState<CardType[]>([]);
+  const { cards, loading: dataLoading } = useData();
   const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [heatmapData, setHeatmapData] = useState<HeatmapItem[]>([]);
   const [firstLoadComplete, setFirstLoadComplete] = useState(false);
-  const startTimeRef = useRef(Date.now());
 
+  // 从共享 Context 获取卡片数据，不需要额外请求
+  // 仅获取 ChartsPage 特有的 streak 和 heatmap
   useEffect(() => {
-    console.log('[ChartsPage] 组件初始化完成，立即显示界面');
-  }, []);
-
-  useEffect(() => {
-    const fetchStartTime = Date.now();
-    console.log('[ChartsPage] 开始发起数据请求，距初始化:', fetchStartTime - startTimeRef.current, 'ms');
-
-    const fetchCardsPromise = api.listCards().then(res => {
-      console.log('[ChartsPage] api.listCards 完成，耗时:', Date.now() - fetchStartTime, 'ms');
-      if (res.success) setCards(res.cards);
-      return res;
-    }).catch(err => {
-      console.error('[ChartsPage] 获取卡片数据失败:', err);
-      return { success: false };
-    });
-
-    const fetchStreakPromise = fetch('/api/progress/streak').then(r => r.json()).then(res => {
-      console.log('[ChartsPage] /api/progress/streak 完成，耗时:', Date.now() - fetchStartTime, 'ms');
-      if (res.success) setStreakData(res);
-      return res;
-    }).catch(err => {
-      console.error('[ChartsPage] 获取连续学习数据失败:', err);
-      return { success: false };
-    });
-
-    const fetchHeatmapPromise = fetch('/api/progress/heatmap').then(r => r.json()).then(res => {
-      console.log('[ChartsPage] /api/progress/heatmap 完成，耗时:', Date.now() - fetchStartTime, 'ms');
-      if (res.success) setHeatmapData(res.data);
-      return res;
-    }).catch(err => {
-      console.error('[ChartsPage] 获取热力图数据失败:', err);
-      return { success: false };
-    });
-
-    Promise.all([fetchCardsPromise, fetchStreakPromise, fetchHeatmapPromise]).then(() => {
-      setFirstLoadComplete(true);
-      console.log('[ChartsPage] 首次加载完成');
-    });
-  }, []);
-
-  useEffect(() => {
-    const handleRefresh = () => {
-      api.listCards().then(res => {
-        if (res.success) setCards(res.cards);
-      }).catch(err => console.error('刷新卡片失败:', err));
-      
+    Promise.all([
       fetch('/api/progress/streak').then(r => r.json()).then(res => {
         if (res.success) setStreakData(res);
-      }).catch(err => console.error('刷新连续学习数据失败:', err));
-      
+      }).catch(() => {}),
       fetch('/api/progress/heatmap').then(r => r.json()).then(res => {
         if (res.success) setHeatmapData(res.data);
-      }).catch(err => console.error('刷新热力图数据失败:', err));
+      }).catch(() => {}),
+    ]).then(() => setFirstLoadComplete(true));
+  }, []);
+
+  // 数据变更时刷新 streak/heatmap
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetch('/api/progress/streak').then(r => r.json()).then(res => {
+        if (res.success) setStreakData(res);
+      }).catch(() => {});
+      fetch('/api/progress/heatmap').then(r => r.json()).then(res => {
+        if (res.success) setHeatmapData(res.data);
+      }).catch(() => {});
     };
     window.addEventListener('papyrus_cards_changed', handleRefresh);
     window.addEventListener('papyrus_notes_changed', handleRefresh);

@@ -212,6 +212,8 @@ export const PageLayout = ({
       padding: '48px 64px 64px',
       background: 'var(--color-bg-1)'
     }}>
+      {/* 页面布局容器 */}
+      {/* 页面标题与操作按钮 */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -231,10 +233,13 @@ export const PageLayout = ({
         )}
       </div>
 
+      {/* 统计面板（含窗景背景） */}
       {renderStats()}
 
+      {/* 页面主体内容 */}
       {children}
 
+      {/* 底部留白 */}
       <div style={{ height: '32px' }} />
     </div>
   );

@@ -16,6 +16,8 @@ import {
 } from '../db/database.js';
 import { saveNoteVersion } from './versioning.js';
 import { recordNoteCreated } from './progress.js';
+import { computeHash } from '../utils/helpers.js';
+export { computeHash };
 
 import type { Note } from './types.js';
 import type { PapyrusLogger } from '../utils/logger.js';
@@ -52,15 +54,6 @@ export function computeWordCount(content: string): number {
   const chineseChars = (content.match(/[一-鿿]/g) ?? []).length;
   const englishWords = (content.match(/[a-zA-Z]+/g) ?? []).length;
   return chineseChars + englishWords;
-}
-
-export function computeHash(content: string): string {
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = ((hash << 5) - hash + char) | 0;
-  }
-  return Math.abs(hash).toString(16).slice(0, 8);
 }
 
 function generatePreview(content: string, maxLength = 100): string {
@@ -184,7 +177,7 @@ export function importObsidianVault(
     return { imported: 0, errors: 0, error: `路径不是目录: ${vaultPath}` };
   }
 
-  // Build set of existing note titles for deduplication
+  // 构建已有笔记标题集合，用于去重
   const existingTitles = new Set(
     loadAllNotes().map(n => n.title.toLowerCase()),
   );
@@ -206,7 +199,7 @@ export function importObsidianVault(
           const raw = fs.readFileSync(fullPath, 'utf8');
           const parsed = matter(raw);
           const title = parsed.data.title ?? entry.name.replace(/\.md$/i, '');
-          // Skip if a note with the same title already exists
+          // 如果相同标题的笔记已存在则跳过
           if (existingTitles.has(title.toLowerCase())) {
             continue;
           }

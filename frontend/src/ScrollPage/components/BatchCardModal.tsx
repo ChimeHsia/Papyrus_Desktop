@@ -45,6 +45,7 @@ const BatchCardModal = ({
     });
   };
 
+  // 批量管理卡片弹窗：选择卡片并批量删除
   return (
     <Modal
       title={t('scrollPage.manageCardsTitle', { count: cards.length })}

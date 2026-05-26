@@ -175,7 +175,7 @@ export const NoteListView = ({
       </div>
 
       {/* 标签筛选 */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '4px' }}>
         {allTags.map(tag => (
           <Tag key={tag} color='arcoblue' style={{ cursor: 'pointer' }}>
             {tag}

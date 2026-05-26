@@ -35,11 +35,11 @@ function toApiFormat(ext: {
   author: string;
   rating: number;
   downloads: number;
-  is_enabled: boolean;
-  is_builtin: boolean;
-  update_available: boolean;
+  is_enabled: number;
+  is_builtin: number;
+  update_available: number;
   latest_version: string | null;
-  tags: string[];
+  tags: string;
 }): ExtensionInfo {
   return {
     id: ext.id,
@@ -49,11 +49,11 @@ function toApiFormat(ext: {
     author: ext.author,
     rating: ext.rating,
     downloads: ext.downloads,
-    isEnabled: ext.is_enabled,
-    isBuiltin: ext.is_builtin,
-    updateAvailable: ext.update_available,
+    isEnabled: Boolean(ext.is_enabled),
+    isBuiltin: Boolean(ext.is_builtin),
+    updateAvailable: Boolean(ext.update_available),
     latestVersion: ext.latest_version ?? undefined,
-    tags: ext.tags,
+    tags: JSON.parse(ext.tags) as string[],
   };
 }
 
@@ -119,7 +119,7 @@ export default async function extensionsRoutes(fastify: FastifyInstance): Promis
         });
       }
       const input: CreateExtensionInput = parseResult.data;
-      const existing = getExtensionById(input.id);
+      const existing = input.id ? getExtensionById(input.id) : undefined;
       if (existing) {
         return reply.status(409).send({ success: false, error: '该扩展已安装' });
       }

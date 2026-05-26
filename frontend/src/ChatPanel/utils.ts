@@ -7,7 +7,7 @@ import type {
   SSEEvent,
 } from './types';
 import type { ChatBlock as ApiChatBlock } from '../api';
-import { getAuthToken, BASE, api, clearAuthTokenCache } from '../api';
+import { rawRequest, BASE, api } from '../api';
 import React from 'react';
 import { IconFilePdf, IconFile, IconImage } from '@arco-design/web-react/icon';
 
@@ -42,7 +42,7 @@ export function persistSessionId(sessionId: string): void {
       localStorage.removeItem(SESSION_ID_STORAGE_KEY);
     }
   } catch {
-    // ignore quota / disabled storage
+    // 忽略配额/禁用存储
   }
 }
 
@@ -156,40 +156,7 @@ export function stripMdTitle(source: string): string {
 }
 
 export async function authFetch(url: string, init?: RequestInit): Promise<Response> {
-  const token = await getAuthToken();
-  const hasBody = init?.body !== undefined;
-  const res = await fetch(`${BASE}${url}`, {
-    ...init,
-    headers: {
-      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { 'X-Papyrus-Token': token } : {}),
-      ...(init?.headers as Record<string, string> || {}),
-    },
-  });
-  if (res.ok) {
-    return res;
-  }
-  if (res.status === 401) {
-    clearAuthTokenCache();
-    const retryToken = await getAuthToken();
-    if (retryToken) {
-      const retryRes = await fetch(`${BASE}${url}`, {
-        ...init,
-        headers: {
-          ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-          'X-Papyrus-Token': retryToken,
-          ...(init?.headers as Record<string, string> || {}),
-        },
-      });
-      if (retryRes.ok) {
-        return retryRes;
-      }
-      if (retryRes.status === 401) {
-        clearAuthTokenCache();
-      }
-    }
-  }
-  return res;
+  return rawRequest(url, init);
 }
 
 export function getFileExtension(filename: string): string {

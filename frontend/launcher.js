@@ -1,191 +1,113 @@
 /**
- * Papyrus 启动器
- * 同时启动 TypeScript 后端和 Vite 前端开发服务器
+ * Papyrus 启动器 — 同时启动后端和 Vite 前端
  */
-
 import { spawn } from 'child_process';
+import { createServer, createConnection } from 'net';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { platform } from 'os';
-import { promisify } from 'util';
-import { exec } from 'child_process';
-
-const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = dirname(__dirname);
 
+const BACKEND_PORT = 8000;
+const FRONTEND_PORT = 5173;
+const TIMEOUT_MS = 30000;
+
 const colors = {
-  reset: '\x1b[0m',
-  green: '\x1b[32m',
-  blue: '\x1b[34m',
-  yellow: '\x1b[33m',
-  red: '\x1b[31m',
-  cyan: '\x1b[36m',
-  magenta: '\x1b[35m'
+  reset: '\x1b[0m', green: '\x1b[32m',
+  yellow: '\x1b[33m', red: '\x1b[31m', cyan: '\x1b[36m',
 };
 
-console.log(`${colors.cyan}Papyrus 启动器${colors.reset}\n`);
-
-async function checkPort(port) {
-  try {
-    if (platform() === 'win32') {
-      const { stdout } = await execAsync(`netstat -ano | findstr :${port} | findstr LISTENING`);
-      return stdout.trim().length > 0;
-    }
-  } catch (e) {
-    return false;
-  }
-  return false;
+function log(color, ...args) {
+  console.log(`${color}${args.join(' ')}${colors.reset}`);
 }
 
-async function killPort(port) {
-  try {
-    if (platform() === 'win32') {
-      const { stdout } = await execAsync(`netstat -ano | findstr :${port} | findstr LISTENING`);
-      const lines = stdout.trim().split('\n');
+async function portInUse(port) {
+  return new Promise(resolve => {
+    const server = createServer();
+    server.once('error', () => resolve(true));
+    server.once('listening', () => { server.close(); resolve(false); });
+    server.listen(port, '127.0.0.1');
+  });
+}
 
-      for (const line of lines) {
-        const match = line.trim().match(/\s+(\d+)\s*$/);
-        if (match) {
-          const pid = match[1];
-          try {
-            await execAsync(`taskkill /PID ${pid} /F`);
-            console.log(`${colors.green}端口 ${port} 已释放 (PID: ${pid})${colors.reset}`);
-          } catch (e) {
-            console.log(`${colors.yellow}无法终止进程 ${pid}${colors.reset}`);
-          }
+function waitForPort(port, timeoutMs) {
+  const start = Date.now();
+  return new Promise((resolve, reject) => {
+    function poll() {
+      const sock = createConnection({ port, host: '127.0.0.1' }, () => {
+        sock.destroy();
+        resolve();
+      });
+      sock.once('error', () => {
+        if (Date.now() - start > timeoutMs) {
+          reject(new Error(`后端启动超时 (${timeoutMs / 1000}s)`));
+        } else {
+          setTimeout(poll, 300);
         }
-      }
+      });
     }
-  } catch (e) {
-  }
+    poll();
+  });
 }
 
-function startFrontend(backendProcess) {
-  console.log(`${colors.yellow}正在启动前端开发服务器...${colors.reset}`);
+const children = [];
 
-  const frontendArgs = ['vite', '--port', '5173'];
-  const frontend = spawn('npx', frontendArgs, {
-    cwd: __dirname,
-    stdio: 'inherit',
-    shell: platform() === 'win32'
-  });
-
-  frontend.on('error', (err) => {
-    console.error(`${colors.red}启动前端失败: ${err.message}${colors.reset}`);
-    console.log(`${colors.yellow}请确保 Node.js 依赖已安装: npm install${colors.reset}`);
-    if (backendProcess) backendProcess.kill();
-    process.exit(1);
-  });
-
-  process.on('SIGINT', () => {
-    console.log(`\n${colors.yellow}正在关闭服务...${colors.reset}`);
-    frontend.kill();
-    if (backendProcess) backendProcess.kill();
-    process.exit(0);
-  });
-
-  process.on('SIGTERM', () => {
-    frontend.kill();
-    if (backendProcess) backendProcess.kill();
-    process.exit(0);
-  });
-
-  if (platform() === 'win32') {
-    process.on('exit', () => {
-      frontend.kill();
-      if (backendProcess) backendProcess.kill();
-    });
-  }
+function cleanup() {
+  for (const child of children) child.kill();
 }
 
-async function start() {
-  console.log(`${colors.yellow}检查端口占用...${colors.reset}`);
+async function main() {
+  log(colors.cyan, 'Papyrus 启动器\n');
 
-  const backendAlreadyRunning = await checkPort(8000);
-  
-  if (!backendAlreadyRunning) {
-    await killPort(8000);
-    await killPort(5173);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-  
-  console.log();
+  const backendRunning = await portInUse(BACKEND_PORT);
 
-  if (backendAlreadyRunning) {
-    console.log(`${colors.green}后端已由外部启动器启动${colors.reset}\n`);
-    startFrontend(null);
+  if (backendRunning) {
+    log(colors.green, '检测到后端已在运行，直接启动前端...\n');
   } else {
-    console.log(`${colors.yellow}正在启动后端服务器...${colors.reset}`);
-
-    const backend = spawn('npm', ['run', 'dev'], {
+    log(colors.yellow, '正在启动后端服务器...');
+    const backend = spawn('npx', ['tsx', 'watch', 'src/api/server.ts'], {
       cwd: join(projectRoot, 'backend'),
-      stdio: 'pipe',
-      shell: platform() === 'win32',
-      env: { ...process.env }
+      stdio: 'inherit',
+      shell: true,
     });
+    children.push(backend);
 
-    let backendReady = false;
-    let backendOutput = [];
-
-    backend.stdout.on('data', (data) => {
-      const output = data.toString();
-      backendOutput.push(output);
-
-      if (output.includes('Server listening on') || output.includes('8000') || output.includes('Papyrus backend started')) {
-        if (!backendReady) {
-          backendReady = true;
-          console.log(`${colors.green}后端已启动: http://127.0.0.1:8000${colors.reset}\n`);
-          startFrontend(backend);
-        }
-      }
-
-      if (output.toLowerCase().includes('error') && !output.includes('INFO')) {
-        console.log(`${colors.red}[后端] ${output.trim()}${colors.reset}`);
-      }
-    });
-
-    backend.stderr.on('data', (data) => {
-      const output = data.toString();
-      if (output.includes('Server listening on') || output.includes('8000') || output.includes('Papyrus backend started')) {
-        if (!backendReady) {
-          backendReady = true;
-          console.log(`${colors.green}后端已启动: http://127.0.0.1:8000${colors.reset}\n`);
-          startFrontend(backend);
-        }
-      } else if (output.toLowerCase().includes('error')) {
-        console.log(`${colors.red}[后端] ${output.trim()}${colors.reset}`);
-      }
-    });
-
-    backend.on('error', (err) => {
-      console.error(`${colors.red}启动后端失败: ${err.message}${colors.reset}`);
-      console.log(`${colors.yellow}请确保 Node.js 依赖已安装:${colors.reset}`);
-      console.log(`   cd backend && npm install`);
+    backend.on('error', err => {
+      log(colors.red, `启动后端失败: ${err.message}`);
       process.exit(1);
     });
 
-    backend.on('exit', (code) => {
-      if (code !== 0 && !backendReady) {
-        console.error(`${colors.red}后端进程异常退出 (代码: ${code})${colors.reset}`);
-        console.log(`${colors.yellow}尝试输出:${colors.reset}`);
-        backendOutput.forEach(line => console.log(line));
-        process.exit(1);
-      }
-    });
-
-    setTimeout(() => {
-      if (!backendReady) {
-        console.log(`${colors.red}后端启动超时 (30秒)${colors.reset}`);
-        console.log(`${colors.yellow}后端输出:${colors.reset}`);
-        backendOutput.forEach(line => console.log(line));
-        backend.kill();
-        process.exit(1);
-      }
-    }, 30000);
+    try {
+      await waitForPort(BACKEND_PORT, TIMEOUT_MS);
+      log(colors.green, `后端已启动: http://127.0.0.1:${BACKEND_PORT}\n`);
+    } catch (err) {
+      log(colors.red, err.message);
+      backend.kill();
+      process.exit(1);
+    }
   }
+
+  log(colors.yellow, '正在启动前端开发服务器...');
+  const frontend = spawn('npx', ['vite', '--port', String(FRONTEND_PORT)], {
+    cwd: __dirname,
+    stdio: 'inherit',
+    shell: platform() === 'win32',
+  });
+  children.push(frontend);
+
+  frontend.on('error', err => {
+    log(colors.red, `启动前端失败: ${err.message}`);
+    process.exit(1);
+  });
 }
 
-start();
+// 退出时杀掉子进程，避免残留
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+// Windows 的 SIGINT 不会自动传播到子进程，额外用 exit 兜底
+if (platform() === 'win32') process.on('exit', cleanup);
+
+main();

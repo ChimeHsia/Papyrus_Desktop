@@ -12,6 +12,7 @@ export function ResultToast({ grade, onUndo, canUndo }: ResultToastProps) {
   const config = RATING_CONFIG[grade];
   const Icon = config.icon;
 
+  // 评分结果提示：显示上一张卡片的评分，支持撤销
   return (
     <div
       style={{

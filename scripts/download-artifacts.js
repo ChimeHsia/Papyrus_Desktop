@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Download GitHub Actions artifacts
- * Usage: node scripts/download-artifacts.js [run-id]
- * If no run-id provided, uses the latest run
+ * 下载 GitHub Actions 构建产物
+ * 用法：node scripts/download-artifacts.js [run-id]
+ * 如果不提供运行 ID，则使用最新运行
  */
 
 const { execSync } = require('child_process');
@@ -20,7 +20,7 @@ function exec(cmd) {
 function downloadArtifacts(runId) {
   const outputDir = path.join(process.cwd(), 'downloaded-artifacts');
   
-  // Create output directory
+  // 创建输出目录
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -29,12 +29,12 @@ function downloadArtifacts(runId) {
   console.log(`📁 Output directory: ${outputDir}`);
   console.log('');
 
-  // Build command
+  // 构建命令
   let cmd = `gh run download`;
   if (runId) {
     cmd += ` ${runId}`;
   } else {
-    // Get latest run
+    // 获取最新运行
     const latestRun = exec('gh run list --workflow=release.yml --limit=1 --json databaseId -q ".[0].databaseId"');
     if (!latestRun) {
       console.error('❌ No runs found. Make sure you have pushed to trigger the workflow.');
@@ -51,7 +51,7 @@ function downloadArtifacts(runId) {
     console.log('✅ Download complete!');
     console.log('');
     
-    // List downloaded files
+    // 列出已下载的文件
     const files = fs.readdirSync(outputDir, { recursive: true });
     console.log('📋 Downloaded files:');
     files.forEach(f => {
@@ -77,6 +77,6 @@ function downloadArtifacts(runId) {
   }
 }
 
-// Main
+// 主函数
 const runId = process.argv[2];
 downloadArtifacts(runId);

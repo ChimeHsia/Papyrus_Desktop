@@ -218,6 +218,7 @@ export const FileTree = ({
         flexDirection: 'column',
       }}
     >
+      {/* 文件树 */}
       {/* 标题栏 */}
       <div
         style={{

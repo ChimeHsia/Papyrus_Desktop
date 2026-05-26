@@ -36,7 +36,7 @@ const AnnouncerContext = React.createContext<AnnouncerContextType | null>(null);
 
 interface ScreenReaderAnnouncerProviderProps {
   children: React.ReactNode;
-  /**  politeness timeout in ms */
+  /** 礼貌性超时时间（毫秒） */
   timeout?: number;
 }
 
@@ -117,7 +117,7 @@ export const ScreenReaderAnnouncerProvider: React.FC<ScreenReaderAnnouncerProvid
 };
 
 // ============================================
-// Hook
+// 钩子
 // ============================================
 
 export const useAnnouncer = (): AnnouncerContextType => {

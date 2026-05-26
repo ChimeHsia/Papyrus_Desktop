@@ -24,6 +24,7 @@ export const ReasoningChain: React.FC<ReasoningChainProps> = ({
 
   return (
     <div className="reasoning-chain">
+      {/* 可折叠的 AI 思考过程 */}
       <Collapse
         bordered={false}
         activeKey={isExpanded ? ['1'] : []}
@@ -34,6 +35,7 @@ export const ReasoningChain: React.FC<ReasoningChainProps> = ({
           name="1"
           header={(
             <div className="reasoning-header">
+              {/* 折叠头：图标、标题、状态标签 */}
               <div className="reasoning-title-wrapper">
                 <div className="reasoning-title-left">
                   <IconMindMapping className="reasoning-icon" />
@@ -46,6 +48,7 @@ export const ReasoningChain: React.FC<ReasoningChainProps> = ({
                   {isExpanded ? <IconDown /> : <IconRight />}
                 </span>
               </div>
+              {/* 折叠时显示内容预览 */}
               {!isExpanded && (
                 <span className="reasoning-preview">
                   {getPreviewText(content)}
@@ -55,6 +58,7 @@ export const ReasoningChain: React.FC<ReasoningChainProps> = ({
           )}
           className="reasoning-collapse-item"
         >
+          {/* 思考过程详细内容 */}
           <div className="reasoning-content">
             <MarkdownView source={content} compact />
           </div>

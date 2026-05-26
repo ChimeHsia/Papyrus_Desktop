@@ -1,10 +1,11 @@
+import { toErrorMessage } from '../../utils/helpers.js';
 import type { FastifyInstance } from 'fastify';
 import { AIManager } from '../../ai/provider.js';
 import type { StreamChunk } from '../../ai/provider.js';
 import { PapyrusTools } from '../../ai/tools.js';
 import { aiConfig } from '../../ai/config-instance.js';
 import { getToolManager } from '../../ai/tool-manager.js';
-import { getProviderApiKeyFromDB, getProviderConfigFromDB, syncDBToAIConfig } from '../../ai/db-sync.js';
+import { getProviderApiKeyFromDB, getProviderConfigFromDB } from '../../db/database.js';
 import type { ChatBlock } from '../../core/types.js';
 import { isKeylessProvider } from './ai-common.js';
 import type { PendingToolCallTracker, ChatStreamReply } from './ai-common.js';
@@ -67,8 +68,8 @@ async function processChatStream(
               if (parsed !== null && typeof parsed === 'object') {
                 parsedArgs = parsed as Record<string, unknown>;
               }
-            } catch {
-              // JSON parse error: params stays empty
+            } catch (parseErr) {
+              console.warn('[ai-chat] 工具参数 JSON 解析失败:', argStr, toErrorMessage(parseErr));
             }
           }
           const toolManager = getToolManager();
@@ -138,7 +139,7 @@ async function processChatStream(
             toolResult: result,
           });
         } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
+          const errMsg = toErrorMessage(err);
           if (toolCall.callId) {
             toolManager.failCall(toolCall.callId, errMsg);
           }
@@ -192,7 +193,7 @@ async function processChatStream(
       } catch (e) {
         reply.raw.write(`data: ${JSON.stringify({
           type: 'error',
-          data: `保存助手消息失败: ${e instanceof Error ? e.message : String(e)}`,
+          data: `保存助手消息失败: ${toErrorMessage(e)}`,
         })}\n\n`);
       }
     }
@@ -208,7 +209,7 @@ async function processChatStream(
   } catch (e) {
     reply.raw.write(`data: ${JSON.stringify({
       type: 'error',
-      data: e instanceof Error ? e.message : String(e),
+      data: toErrorMessage(e),
     })}\n\n`);
   } finally {
     reply.raw.end();
@@ -217,9 +218,6 @@ async function processChatStream(
 
 export default async function aiChatRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/chat', async (request, reply) => {
-    // 在处理请求前，同步最新的配置
-    syncDBToAIConfig(aiConfig);
-    
     const payload = request.body as {
       message: string;
       session_id?: string;
@@ -273,9 +271,6 @@ export default async function aiChatRoutes(fastify: FastifyInstance): Promise<vo
   });
 
   fastify.post('/messages/:messageId/regenerate', async (request, reply) => {
-    // 在处理请求前，同步最新的配置
-    syncDBToAIConfig(aiConfig);
-    
     const { messageId } = request.params as { messageId: string };
     const payload = (request.body ?? {}) as {
       model?: string;

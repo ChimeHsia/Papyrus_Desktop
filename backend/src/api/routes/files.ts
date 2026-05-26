@@ -7,7 +7,7 @@ const MAX_PREVIEW_SIZE = 10 * 1024 * 1024;
 const THUMBNAIL_SIZE = 128;
 
 export default async function filesRoutes(fastify: FastifyInstance): Promise<void> {
-  // List all files/folders
+  // 列出所有文件/文件夹
   fastify.get('/', async (_request, reply) => {
     try {
       const files = listFiles();
@@ -18,7 +18,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     }
   });
 
-  // Get single file
+  // 获取单个文件
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const file = getFileById(id);
@@ -29,7 +29,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     reply.send({ success: true, file });
   });
 
-  // Create folder
+  // 创建文件夹
   fastify.post('/folder', async (request, reply) => {
     try {
       const body = request.body as { name?: string; parentId?: string };
@@ -46,7 +46,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     }
   });
 
-  // Upload file(s) — accepts JSON with base64 content
+  // 上传文件 — 接受包含 base64 内容的 JSON
   fastify.post('/upload', async (request, reply) => {
     try {
       const body = request.body as {
@@ -88,7 +88,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     }
   });
 
-  // Preview file (inline, not attachment)
+  // 预览文件（内联，非附件）
   fastify.get('/:id/preview', async (request, reply) => {
     const { id } = request.params as { id: string };
     const file = getFileById(id);
@@ -110,7 +110,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     reply.send(content);
   });
 
-  // Download file
+  // 下载文件
   fastify.get('/:id/download', async (request, reply) => {
     const { id } = request.params as { id: string };
     const file = getFileById(id);
@@ -135,7 +135,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     reply.send(stream);
   });
 
-  // Thumbnail endpoint for images
+  // 图片缩略图端点
   fastify.get('/:id/thumbnail', async (request, reply) => {
     const { id } = request.params as { id: string };
     const file = getFileById(id);
@@ -169,7 +169,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     }
   });
 
-  // Delete file/folder
+  // 删除文件/文件夹
   fastify.delete('/:id', async (request, reply) => {
     try {
       const { id } = request.params as { id: string };

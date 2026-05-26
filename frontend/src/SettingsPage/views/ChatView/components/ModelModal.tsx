@@ -1,3 +1,4 @@
+import { toErrorMessage } from '../../../../utils/helpers';
 import { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Checkbox, Typography, Message } from '@arco-design/web-react';
 import { ProviderLogo } from '../../../../icons/ProviderLogo';
@@ -108,7 +109,7 @@ const ModelModal = ({ visible, onClose, onModelSaved, providers, editingModel, s
           })
           .catch(err => {
             console.error('Failed to add model:', err);
-            const msg = err instanceof Error ? err.message : String(err);
+            const msg = toErrorMessage(err);
             Message.error(msg || t('chatView.saveFailed'));
             window.dispatchEvent(new CustomEvent('papyrus_ai_config_changed'));
           })

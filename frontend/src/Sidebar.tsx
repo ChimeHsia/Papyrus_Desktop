@@ -64,6 +64,8 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
 
   return (
     <nav className={`sidebar${collapsed ? '' : ' sidebar-expanded'}`} aria-label="主导航">
+      {/* 主导航侧边栏 */}
+      {/* 侧边栏展开/折叠按钮 */}
       <button
         className={`sidebar-item sidebar-toggle${!collapsed ? ' sidebar-item-active' : ''}`}
         onClick={onToggle}
@@ -74,6 +76,7 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
         <span className="sidebar-icon"><IconNav /></span>
         <span className="sidebar-label">{t('sidebar.sidebar')}</span>
       </button>
+      {/* 页面导航菜单项 */}
       {items.map((item) => {
         const IconComponent = item.icon;
         return (
@@ -91,7 +94,9 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
           </Tooltip>
         );
       })}
+      {/* 底部操作区域 */}
       <div className="tw-flex-1" />
+      {/* AI 聊天开关 */}
       <Tooltip content={t('sidebar.chat')} position="right" mini disabled={!collapsed}>
         <button 
           className={`sidebar-item${chatOpen ? ' sidebar-item-active' : ''}`} 
@@ -104,6 +109,7 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
           <span className="sidebar-label">{t('sidebar.chat')}</span>
         </button>
       </Tooltip>
+      {/* 深色/浅色模式切换 */}
       <Tooltip content={dark ? t('sidebar.switchToLight') : t('sidebar.switchToDark')} position="right" mini disabled={!collapsed}>
         <button 
           className="sidebar-item" 
@@ -116,6 +122,7 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
           <span className="sidebar-label">{dark ? t('sidebar.darkMode') : t('sidebar.lightMode')}</span>
         </button>
       </Tooltip>
+      {/* 编辑锁定/解锁 */}
       <Tooltip content={locked ? t('sidebar.unlockEdit') : t('sidebar.lockEdit')} position="right" mini disabled={!collapsed}>
         <button
           className="sidebar-item"
@@ -128,6 +135,7 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
           <span className="sidebar-label">{locked ? t('sidebar.lockEdit') : t('sidebar.unlockEdit')}</span>
         </button>
       </Tooltip>
+      {/* 设置页面入口 */}
       <Tooltip content={t('sidebar.settings')} position="right" mini disabled={!collapsed}>
         <button
           className={`sidebar-item${activePage === 'settings' ? ' sidebar-item-active' : ''}`}
